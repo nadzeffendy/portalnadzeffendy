@@ -1,0 +1,6 @@
+{
+  "name": "Nadz Effendy - Portfolio & Portal",
+  "description": "Laman Web & Portal Akademik Interaktif En. Nasrul Effendy bin Mat Nasir (PTSS), dilengkapi sambungan database, multi-halaman dinamik, dan integrasi Google Drive.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

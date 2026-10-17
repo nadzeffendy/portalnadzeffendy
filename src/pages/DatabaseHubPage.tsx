@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Database,
   Plus,
@@ -10,7 +10,6 @@ import {
   RefreshCw,
   CheckCircle2,
   Clock,
-  Archive,
   Layers,
   Sparkles,
   ExternalLink,
@@ -30,32 +29,60 @@ import {
   ShieldCheck,
   User,
   Save,
+  Image as ImageIcon,
+  Camera,
+  Award,
+  Briefcase,
+  FileText,
+  Eye,
+  Check,
 } from 'lucide-react';
 import {
   PublicationItem,
   InnovationProject,
   TeachingCourse,
   NavigationLink,
+  ExpertiseItem,
+  ResearchItem,
+  AdminCVData,
+  CVImageAttachment,
+  Education,
+  ServiceRecord,
+  AwardItem,
 } from '../types';
 import {
-  getAdminPublications,
-  addAdminPublication,
-  updateAdminPublication,
-  deleteAdminPublication,
+  getAdminProfile,
+  updateAdminProfile,
+  getAdminExpertise,
+  addAdminExpertise,
+  updateAdminExpertise,
+  deleteAdminExpertise,
+  getAdminResearch,
+  addAdminResearch,
+  updateAdminResearch,
+  deleteAdminResearch,
   getAdminInnovations,
   addAdminInnovation,
   updateAdminInnovation,
   deleteAdminInnovation,
-  getAdminCourses,
-  addAdminCourse,
-  updateAdminCourse,
-  deleteAdminCourse,
+  getAdminCVData,
+  updateAdminCVData,
+  uploadCVPhoto,
+  addCVImageAttachment,
+  deleteCVImageAttachment,
+  addCVEducation,
+  updateCVEducation,
+  deleteCVEducation,
+  addCVExperience,
+  updateCVExperience,
+  deleteCVExperience,
+  addCVAward,
+  updateCVAward,
+  deleteCVAward,
   getAdminNavLinks,
   addAdminNavLink,
   updateAdminNavLink,
   deleteAdminNavLink,
-  getAdminProfile,
-  updateAdminProfile,
   subscribeToAdminData,
   exportAllAdminDataJSON,
   importAllAdminDataJSON,
@@ -70,68 +97,154 @@ import {
 import { AdminLoginCard } from '../components/AdminLoginCard';
 import { ConfirmModal } from '../components/ConfirmModal';
 
-type AdminTab = 'publications' | 'innovations' | 'courses' | 'navlinks' | 'profile';
+type AdminTab = 'profile' | 'kepakaran' | 'penyelidikan' | 'innovations' | 'cv' | 'navlinks';
 
 export const DatabaseHubPage: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(isAdminLoggedIn());
-  const [currentTab, setCurrentTab] = useState<AdminTab>('publications');
+  const [currentTab, setCurrentTab] = useState<AdminTab>('profile');
   const [search, setSearch] = useState('');
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
-  // Data states
-  const [publications, setPublications] = useState<PublicationItem[]>([]);
-  const [innovations, setInnovations] = useState<InnovationProject[]>([]);
-  const [courses, setCourses] = useState<TeachingCourse[]>([]);
-  const [navLinks, setNavLinks] = useState<NavigationLink[]>([]);
+  // Core Data States
   const [profile, setProfile] = useState(getAdminProfile());
+  const [expertiseList, setExpertiseList] = useState<ExpertiseItem[]>([]);
+  const [researchList, setResearchList] = useState<ResearchItem[]>([]);
+  const [innovations, setInnovations] = useState<InnovationProject[]>([]);
+  const [cvData, setCvData] = useState<AdminCVData>(getAdminCVData());
+  const [navLinks, setNavLinks] = useState<NavigationLink[]>([]);
 
   // Password Modal State
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // Modals & form state
-  const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
-  const [activeItemId, setActiveItemId] = useState<string | null>(null);
-
-  // Common Form Fields
-  const [formTitle, setFormTitle] = useState('');
-  const [formSubtitle, setFormSubtitle] = useState('');
-  const [formCategory, setFormCategory] = useState('');
-  const [formDescription, setFormDescription] = useState('');
-  const [formWebsiteUrl, setFormWebsiteUrl] = useState('');
-  const [formDriveUrl, setFormDriveUrl] = useState('');
-  const [formTags, setFormTags] = useState('');
-  const [formStatus, setFormStatus] = useState<string>('Active');
+  // Confirmation Modal
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string; type: string } | null>(null);
 
   // Profile Form State
   const [profileName, setProfileName] = useState(profile.name);
   const [profileGrade, setProfileGrade] = useState(profile.grade);
   const [profileTitle, setProfileTitle] = useState(profile.title);
   const [profileDept, setProfileDept] = useState(profile.department);
+  const [profileInst, setProfileInst] = useState(profile.institution);
   const [profilePhone, setProfilePhone] = useState(profile.phone);
-  const [profileEmail, setProfileEmail] = useState(profile.emailPTSS);
+  const [profileEmailPTSS, setProfileEmailPTSS] = useState(profile.emailPTSS);
+  const [profileEmailPersonal, setProfileEmailPersonal] = useState(profile.emailPersonal || '');
   const [profileBio, setProfileBio] = useState(profile.bio);
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState(profile.photoUrl || '');
+  const profilePhotoInputRef = useRef<HTMLInputElement>(null);
 
-  // Confirmation Modal
-  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string; tab: AdminTab } | null>(null);
+  // CV Image & Media Form State
+  const [cvPhotoInputUrl, setCvPhotoInputUrl] = useState(cvData.photoUrl || '');
+  const [cvPhotoCaption, setCvPhotoCaption] = useState(cvData.photoCaption || '');
+  const [cvPdfUrl, setCvPdfUrl] = useState(cvData.pdfDownloadUrl || '');
+  const cvFileInputRef = useRef<HTMLInputElement>(null);
+  const cvAttachmentInputRef = useRef<HTMLInputElement>(null);
+
+  // Add/Edit Modals
+  const [isExpertiseModalOpen, setIsExpertiseModalOpen] = useState(false);
+  const [expertiseModalMode, setExpertiseModalMode] = useState<'add' | 'edit'>('add');
+  const [activeExpertiseId, setActiveExpertiseId] = useState<string | null>(null);
+  const [expTitle, setExpTitle] = useState('');
+  const [expCategory, setExpCategory] = useState('Teknologi Maklumat');
+  const [expLevel, setExpLevel] = useState<ExpertiseItem['level']>('Pakar Utama');
+  const [expDesc, setExpDesc] = useState('');
+  const [expTags, setExpTags] = useState('');
+  const [expBadge, setExpBadge] = useState('');
+  const [expOrg, setExpOrg] = useState('');
+
+  // Research Add/Edit Modal
+  const [isResearchModalOpen, setIsResearchModalOpen] = useState(false);
+  const [researchModalMode, setResearchModalMode] = useState<'add' | 'edit'>('add');
+  const [activeResearchId, setActiveResearchId] = useState<string | null>(null);
+  const [resTitle, setResTitle] = useState('');
+  const [resYear, setResYear] = useState('2026');
+  const [resType, setResType] = useState<ResearchItem['type']>('Jurnal Berindeks');
+  const [resVenue, setResVenue] = useState('');
+  const [resDoi, setResDoi] = useState('');
+  const [resSummary, setResSummary] = useState('');
+  const [resTags, setResTags] = useState('');
+  const [resGrant, setResGrant] = useState('');
+  const [resStatus, setResStatus] = useState<ResearchItem['status']>('Diterbitkan');
+  const [resDriveUrl, setResDriveUrl] = useState('');
+  const [resWebsiteUrl, setResWebsiteUrl] = useState('');
+
+  // Innovation Add/Edit Modal
+  const [isInnoModalOpen, setIsInnoModalOpen] = useState(false);
+  const [innoModalMode, setInnoModalMode] = useState<'add' | 'edit'>('add');
+  const [activeInnoId, setActiveInnoId] = useState<string | null>(null);
+  const [innoTitle, setInnoTitle] = useState('');
+  const [innoAcronym, setInnoAcronym] = useState('');
+  const [innoYear, setInnoYear] = useState('2026');
+  const [innoCategory, setInnoCategory] = useState('');
+  const [innoDesc, setInnoDesc] = useState('');
+  const [innoFeatures, setInnoFeatures] = useState('');
+  const [innoStatus, setInnoStatus] = useState<'Active' | 'Completed' | 'In Progress'>('Active');
+  const [innoDriveUrl, setInnoDriveUrl] = useState('');
+  const [innoWebsiteUrl, setInnoWebsiteUrl] = useState('');
+  const [innoAwards, setInnoAwards] = useState('');
+
+  // CV Sub-items Modals (Education, Service, Award, Attachment)
+  const [isCVEduModalOpen, setIsCVEduModalOpen] = useState(false);
+  const [cvEduDegree, setCvEduDegree] = useState('');
+  const [cvEduField, setCvEduField] = useState('');
+  const [cvEduInst, setCvEduInst] = useState('');
+  const [cvEduYear, setCvEduYear] = useState('2026');
+
+  const [isCVExpModalOpen, setIsCVExpModalOpen] = useState(false);
+  const [cvExpRole, setCvExpRole] = useState('');
+  const [cvExpPeriod, setCvExpPeriod] = useState('');
+  const [cvExpInst, setCvExpInst] = useState('');
+  const [cvExpDept, setCvExpDept] = useState('');
+  const [cvExpHighlights, setCvExpHighlights] = useState('');
+
+  const [isCVAwardModalOpen, setIsCVAwardModalOpen] = useState(false);
+  const [cvAwardTitle, setCvAwardTitle] = useState('');
+  const [cvAwardYear, setCvAwardYear] = useState('2025');
+  const [cvAwardIssuer, setCvAwardIssuer] = useState('');
+  const [cvAwardType, setCvAwardType] = useState<'Anugerah' | 'Pingat' | 'Sijil'>('Anugerah');
+
+  const [isCVAttachModalOpen, setIsCVAttachModalOpen] = useState(false);
+  const [cvAttachTitle, setCvAttachTitle] = useState('');
+  const [cvAttachUrl, setCvAttachUrl] = useState('');
+  const [cvAttachType, setCvAttachType] = useState<CVImageAttachment['type']>('certificate');
+  const [cvAttachDesc, setCvAttachDesc] = useState('');
+
+  // Navigation Links Modal
+  const [isNavLinkModalOpen, setIsNavLinkModalOpen] = useState(false);
+  const [navTitle, setNavTitle] = useState('');
+  const [navUrl, setNavUrl] = useState('');
+  const [navType, setNavType] = useState<'website' | 'drive'>('website');
+  const [navCategory, setNavCategory] = useState<NavigationLink['category']>('teroka');
+  const [navDesc, setNavDesc] = useState('');
+  const [navBadge, setNavBadge] = useState('');
 
   const loadAll = () => {
-    setPublications(getAdminPublications());
-    setInnovations(getAdminInnovations());
-    setCourses(getAdminCourses());
-    setNavLinks(getAdminNavLinks());
     const p = getAdminProfile();
     setProfile(p);
     setProfileName(p.name);
     setProfileGrade(p.grade);
     setProfileTitle(p.title);
     setProfileDept(p.department);
+    setProfileInst(p.institution);
     setProfilePhone(p.phone);
-    setProfileEmail(p.emailPTSS);
+    setProfileEmailPTSS(p.emailPTSS);
+    setProfileEmailPersonal(p.emailPersonal || '');
     setProfileBio(p.bio);
+    setProfilePhotoUrl(p.photoUrl || '');
+
+    setExpertiseList(getAdminExpertise());
+    setResearchList(getAdminResearch());
+    setInnovations(getAdminInnovations());
+
+    const cv = getAdminCVData();
+    setCvData(cv);
+    setCvPhotoInputUrl(cv.photoUrl || '');
+    setCvPhotoCaption(cv.photoCaption || '');
+    setCvPdfUrl(cv.pdfDownloadUrl || '');
+
+    setNavLinks(getAdminNavLinks());
   };
 
   useEffect(() => {
@@ -159,348 +272,589 @@ export const DatabaseHubPage: React.FC = () => {
 
   const handleLogout = () => {
     logoutAdmin();
-    notify('🚪 Anda telah log keluar dari Portal Kandungan.');
+    setIsAuthenticated(false);
+    notify('Sesi admin ditamatkan dengan selamat.');
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handlePasswordChangeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword.length < 4) {
-      alert('Kata laluan sekurang-kurangnya 4 aksara.');
+    if (!newPassword || newPassword.length < 5) {
+      alert('Kata laluan mestilah sekurang-kurangnya 5 aksara.');
       return;
     }
     if (newPassword !== confirmPassword) {
       alert('Pengesahan kata laluan tidak sepadan.');
       return;
     }
-    changeAdminPassword(newPassword);
-    setIsPasswordModalOpen(false);
-    setNewPassword('');
-    setConfirmPassword('');
-    notify('🔑 Kata laluan pentadbir berjaya dikemaskini!');
+    const success = changeAdminPassword(newPassword);
+    if (success) {
+      notify('Kata laluan pentadbir berjaya dikemaskini!');
+      setIsPasswordModalOpen(false);
+      setNewPassword('');
+      setConfirmPassword('');
+    } else {
+      alert('Ralat menukar kata laluan.');
+    }
   };
 
+  // Profile Save
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    updateAdminProfile({
+    const success = updateAdminProfile({
       name: profileName,
       grade: profileGrade,
       title: profileTitle,
       department: profileDept,
+      institution: profileInst,
       phone: profilePhone,
-      emailPTSS: profileEmail,
+      emailPTSS: profileEmailPTSS,
+      emailPersonal: profileEmailPersonal,
       bio: profileBio,
+      photoUrl: profilePhotoUrl,
     });
-    notify('✅ Maklumat profil dan laman berjaya disimpan!');
-  };
-
-  // Open Modal for Create
-  const handleOpenAdd = () => {
-    setModalMode('add');
-    setActiveItemId(null);
-    setFormTitle('');
-    setFormSubtitle('');
-    setFormCategory(
-      currentTab === 'publications'
-        ? 'Journal'
-        : currentTab === 'innovations'
-        ? 'Sistem Pintar AI & Pengurusan Institusi'
-        : currentTab === 'courses'
-        ? 'Diploma Teknologi Maklumat'
-        : 'penyelidikan'
-    );
-    setFormDescription('');
-    setFormWebsiteUrl('');
-    setFormDriveUrl('');
-    setFormTags('');
-    setFormStatus('Active');
-    setIsAddEditModalOpen(true);
-  };
-
-  // Open Modal for Edit
-  const handleOpenEdit = (item: any) => {
-    setModalMode('edit');
-    setActiveItemId(item.id);
-
-    if (currentTab === 'publications') {
-      const pub = item as PublicationItem;
-      setFormTitle(pub.title);
-      setFormSubtitle(pub.year);
-      setFormCategory(pub.type);
-      setFormDescription(pub.summary);
-      setFormWebsiteUrl(pub.websiteUrl || pub.doi || '');
-      setFormDriveUrl(pub.driveUrl || '');
-      setFormTags(pub.tags?.join(', ') || '');
-    } else if (currentTab === 'innovations') {
-      const inv = item as InnovationProject;
-      setFormTitle(inv.title);
-      setFormSubtitle(inv.acronym);
-      setFormCategory(inv.category);
-      setFormDescription(inv.description);
-      setFormWebsiteUrl(inv.websiteUrl || '');
-      setFormDriveUrl(inv.driveUrl || '');
-      setFormTags(inv.features?.join(', ') || '');
-      setFormStatus(inv.status);
-    } else if (currentTab === 'courses') {
-      const crs = item as TeachingCourse;
-      setFormTitle(crs.name);
-      setFormSubtitle(crs.code);
-      setFormCategory(crs.level);
-      setFormDescription(crs.description);
-      setFormWebsiteUrl(crs.websiteUrl || '');
-      setFormDriveUrl(crs.driveUrl || '');
-      setFormTags(crs.tags?.join(', ') || '');
-    } else if (currentTab === 'navlinks') {
-      const nav = item as NavigationLink;
-      setFormTitle(nav.title);
-      setFormSubtitle(nav.badge || '');
-      setFormCategory(nav.category);
-      setFormDescription(nav.description || '');
-      setFormWebsiteUrl(nav.type === 'website' ? nav.url : '');
-      setFormDriveUrl(nav.type === 'drive' ? nav.url : '');
-      setFormTags('');
+    if (success) {
+      notify('Profil & maklumat rasmi berjaya disimpan!');
+    } else {
+      alert('Gagal mengemas kini profil.');
     }
-
-    setIsAddEditModalOpen(true);
   };
 
-  // Save Add/Edit
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formTitle.trim()) {
-      alert('Sila masukkan tajuk rekod.');
+  // Profile Photo Upload Handler (FileReader to Base64)
+  const handleProfilePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+      alert('Saiz fail melebihi 4MB. Sila pilih gambar yang lebih kecil.');
       return;
     }
+    const reader = new FileReader();
+    reader.onload = event => {
+      const base64 = event.target?.result as string;
+      if (base64) {
+        setProfilePhotoUrl(base64);
+        updateAdminProfile({ photoUrl: base64 });
+        uploadCVPhoto(base64);
+        notify('Gambar potret baru berjaya dimuat naik & diselaraskan ke CV!');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
-    const tagList = formTags
+  // CV Photo File Upload Handler
+  const handleCVPhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+      alert('Saiz fail melebihi 4MB. Sila pilih gambar yang lebih kecil.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = event => {
+      const base64 = event.target?.result as string;
+      if (base64) {
+        setCvPhotoInputUrl(base64);
+        uploadCVPhoto(base64, cvPhotoCaption);
+        setProfilePhotoUrl(base64);
+        notify('Gambar potret CV berjaya dimuat naik & diselaraskan!');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // CV Save Photo & PDF Settings
+  const handleSaveCVMediaSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    uploadCVPhoto(cvPhotoInputUrl, cvPhotoCaption);
+    updateAdminCVData({ pdfDownloadUrl: cvPdfUrl });
+    notify('Tetapan imej CV & pautan PDF berjaya disimpan!');
+  };
+
+  // Expertise Form Submit
+  const handleSaveExpertise = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!expTitle.trim()) {
+      alert('Sila masukkan tajuk kepakaran.');
+      return;
+    }
+    const tagsArray = expTags
       .split(',')
       .map(t => t.trim())
       .filter(Boolean);
 
-    if (currentTab === 'publications') {
-      if (modalMode === 'add') {
-        addAdminPublication({
-          title: formTitle.trim(),
-          year: formSubtitle.trim() || new Date().getFullYear().toString(),
-          type: (formCategory as any) || 'Journal',
-          summary: formDescription.trim(),
-          tags: tagList,
-          venue: 'Penerbitan Rasmi PTSS / Jurnal Berwasit',
-          websiteUrl: formWebsiteUrl.trim() || undefined,
-          driveUrl: formDriveUrl.trim() || undefined,
-        });
-        notify('✅ Penerbitan baharu berjaya ditambah bersama pautan Website/Drive!');
-      } else if (activeItemId) {
-        updateAdminPublication(activeItemId, {
-          title: formTitle.trim(),
-          year: formSubtitle.trim(),
-          type: formCategory as any,
-          summary: formDescription.trim(),
-          tags: tagList,
-          websiteUrl: formWebsiteUrl.trim() || undefined,
-          driveUrl: formDriveUrl.trim() || undefined,
-        });
-        notify('✅ Penerbitan berjaya dikemaskini!');
-      }
-    } else if (currentTab === 'innovations') {
-      if (modalMode === 'add') {
-        addAdminInnovation({
-          title: formTitle.trim(),
-          acronym: formSubtitle.trim() || 'INOVASI',
-          year: new Date().getFullYear().toString(),
-          category: formCategory.trim() || 'Sistem Pintar AI',
-          description: formDescription.trim(),
-          features: tagList.length > 0 ? tagList : ['Pembangunan digital pintar', 'Pengurusan bersepadu TVET'],
-          status: (formStatus as any) || 'Active',
-          iconName: 'Sparkles',
-          websiteUrl: formWebsiteUrl.trim() || undefined,
-          driveUrl: formDriveUrl.trim() || undefined,
-        });
-        notify('✅ Projek inovasi baharu berjaya disimpan!');
-      } else if (activeItemId) {
-        updateAdminInnovation(activeItemId, {
-          title: formTitle.trim(),
-          acronym: formSubtitle.trim(),
-          category: formCategory.trim(),
-          description: formDescription.trim(),
-          features: tagList.length > 0 ? tagList : undefined,
-          status: formStatus as any,
-          websiteUrl: formWebsiteUrl.trim() || undefined,
-          driveUrl: formDriveUrl.trim() || undefined,
-        });
-        notify('✅ Projek inovasi berjaya dikemaskini!');
-      }
-    } else if (currentTab === 'courses') {
-      if (modalMode === 'add') {
-        addAdminCourse({
-          name: formTitle.trim(),
-          code: formSubtitle.trim().toUpperCase() || 'DFC0000',
-          level: formCategory.trim() || 'Diploma Teknologi Maklumat',
-          description: formDescription.trim(),
-          tags: tagList,
-          materialsCount: 12,
-          websiteUrl: formWebsiteUrl.trim() || undefined,
-          driveUrl: formDriveUrl.trim() || undefined,
-        });
-        notify('✅ Kursus pengajaran baharu berjaya ditambah!');
-      } else if (activeItemId) {
-        updateAdminCourse(activeItemId, {
-          name: formTitle.trim(),
-          code: formSubtitle.trim().toUpperCase(),
-          level: formCategory.trim(),
-          description: formDescription.trim(),
-          tags: tagList,
-          websiteUrl: formWebsiteUrl.trim() || undefined,
-          driveUrl: formDriveUrl.trim() || undefined,
-        });
-        notify('✅ Kursus pengajaran berjaya dikemaskini!');
-      }
-    } else if (currentTab === 'navlinks') {
-      const url = formDriveUrl.trim() || formWebsiteUrl.trim() || '#';
-      const type = formDriveUrl.trim() ? 'drive' : 'website';
-
-      if (modalMode === 'add') {
-        addAdminNavLink({
-          title: formTitle.trim(),
-          url,
-          type,
-          category: (formCategory as any) || 'penyelidikan',
-          description: formDescription.trim(),
-          badge: formSubtitle.trim() || (type === 'drive' ? 'Google Drive' : 'Website'),
-        });
-        notify('✅ Pautan navigasi/Drive baharu berjaya disimpan!');
-      } else if (activeItemId) {
-        updateAdminNavLink(activeItemId, {
-          title: formTitle.trim(),
-          url,
-          type,
-          category: formCategory as any,
-          description: formDescription.trim(),
-          badge: formSubtitle.trim(),
-        });
-        notify('✅ Pautan navigasi berjaya dikemaskini!');
-      }
+    if (expertiseModalMode === 'add') {
+      addAdminExpertise({
+        title: expTitle,
+        category: expCategory,
+        level: expLevel,
+        description: expDesc,
+        tags: tagsArray,
+        badge: expBadge,
+        organization: expOrg,
+      });
+      notify('Bidang kepakaran baru berjaya ditambah!');
+    } else if (activeExpertiseId) {
+      updateAdminExpertise(activeExpertiseId, {
+        title: expTitle,
+        category: expCategory,
+        level: expLevel,
+        description: expDesc,
+        tags: tagsArray,
+        badge: expBadge,
+        organization: expOrg,
+      });
+      notify('Bidang kepakaran berjaya dikemaskini!');
     }
-
-    setIsAddEditModalOpen(false);
+    setIsExpertiseModalOpen(false);
   };
 
-  // Delete Action with Confirmation
-  const promptDelete = (id: string, title: string) => {
-    setDeleteTarget({ id, title, tab: currentTab });
+  const handleOpenEditExpertise = (item: ExpertiseItem) => {
+    setExpertiseModalMode('edit');
+    setActiveExpertiseId(item.id);
+    setExpTitle(item.title);
+    setExpCategory(item.category);
+    setExpLevel(item.level);
+    setExpDesc(item.description);
+    setExpTags((item.tags || []).join(', '));
+    setExpBadge(item.badge || '');
+    setExpOrg(item.organization || '');
+    setIsExpertiseModalOpen(true);
+  };
+
+  const handleOpenAddExpertise = () => {
+    setExpertiseModalMode('add');
+    setActiveExpertiseId(null);
+    setExpTitle('');
+    setExpCategory('Teknologi Maklumat');
+    setExpLevel('Pakar Utama');
+    setExpDesc('');
+    setExpTags('');
+    setExpBadge('');
+    setExpOrg('PTSS / JTMK');
+    setIsExpertiseModalOpen(true);
+  };
+
+  // Research Form Submit
+  const handleSaveResearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resTitle.trim()) {
+      alert('Sila masukkan tajuk penyelidikan.');
+      return;
+    }
+    const tagsArray = resTags
+      .split(',')
+      .map(t => t.trim())
+      .filter(Boolean);
+
+    if (researchModalMode === 'add') {
+      addAdminResearch({
+        title: resTitle,
+        year: resYear,
+        type: resType,
+        venue: resVenue,
+        doi: resDoi,
+        summary: resSummary,
+        tags: tagsArray,
+        grantAmount: resGrant,
+        status: resStatus,
+        driveUrl: resDriveUrl,
+        websiteUrl: resWebsiteUrl,
+      });
+      notify('Penyelidikan / penerbitan baru berjaya ditambah!');
+    } else if (activeResearchId) {
+      updateAdminResearch(activeResearchId, {
+        title: resTitle,
+        year: resYear,
+        type: resType,
+        venue: resVenue,
+        doi: resDoi,
+        summary: resSummary,
+        tags: tagsArray,
+        grantAmount: resGrant,
+        status: resStatus,
+        driveUrl: resDriveUrl,
+        websiteUrl: resWebsiteUrl,
+      });
+      notify('Penyelidikan berjaya dikemaskini!');
+    }
+    setIsResearchModalOpen(false);
+  };
+
+  const handleOpenEditResearch = (item: ResearchItem) => {
+    setResearchModalMode('edit');
+    setActiveResearchId(item.id);
+    setResTitle(item.title);
+    setResYear(item.year);
+    setResType(item.type);
+    setResVenue(item.venue);
+    setResDoi(item.doi || '');
+    setResSummary(item.summary);
+    setResTags((item.tags || []).join(', '));
+    setResGrant(item.grantAmount || '');
+    setResStatus(item.status);
+    setResDriveUrl(item.driveUrl || '');
+    setResWebsiteUrl(item.websiteUrl || '');
+    setIsResearchModalOpen(true);
+  };
+
+  const handleOpenAddResearch = () => {
+    setResearchModalMode('add');
+    setActiveResearchId(null);
+    setResTitle('');
+    setResYear(new Date().getFullYear().toString());
+    setResType('Jurnal Berindeks');
+    setResVenue('');
+    setResDoi('');
+    setResSummary('');
+    setResTags('');
+    setResGrant('');
+    setResStatus('Diterbitkan');
+    setResDriveUrl('');
+    setResWebsiteUrl('');
+    setIsResearchModalOpen(true);
+  };
+
+  // Innovation Form Submit
+  const handleSaveInnovation = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!innoTitle.trim() || !innoAcronym.trim()) {
+      alert('Sila lengkapkan tajuk dan akronim inovasi.');
+      return;
+    }
+    const featuresArray = innoFeatures
+      .split('\n')
+      .map(f => f.trim())
+      .filter(Boolean);
+
+    if (innoModalMode === 'add') {
+      addAdminInnovation({
+        title: innoTitle,
+        acronym: innoAcronym,
+        year: innoYear,
+        category: innoCategory,
+        description: innoDesc,
+        features: featuresArray,
+        status: innoStatus,
+        driveUrl: innoDriveUrl,
+        websiteUrl: innoWebsiteUrl,
+        iconName: 'Sparkles',
+      });
+      notify('Projek inovasi baru berjaya disimpan dalam sistem admin!');
+    } else if (activeInnoId) {
+      updateAdminInnovation(activeInnoId, {
+        title: innoTitle,
+        acronym: innoAcronym,
+        year: innoYear,
+        category: innoCategory,
+        description: innoDesc,
+        features: featuresArray,
+        status: innoStatus,
+        driveUrl: innoDriveUrl,
+        websiteUrl: innoWebsiteUrl,
+      });
+      notify('Projek inovasi berjaya dikemaskini dalam admin!');
+    }
+    setIsInnoModalOpen(false);
+  };
+
+  const handleOpenEditInno = (item: InnovationProject) => {
+    setInnoModalMode('edit');
+    setActiveInnoId(item.id);
+    setInnoTitle(item.title);
+    setInnoAcronym(item.acronym);
+    setInnoYear(item.year);
+    setInnoCategory(item.category);
+    setInnoDesc(item.description);
+    setInnoFeatures((item.features || []).join('\n'));
+    setInnoStatus(item.status);
+    setInnoDriveUrl(item.driveUrl || '');
+    setInnoWebsiteUrl(item.websiteUrl || '');
+    setIsInnoModalOpen(true);
+  };
+
+  const handleOpenAddInno = () => {
+    setInnoModalMode('add');
+    setActiveInnoId(null);
+    setInnoTitle('');
+    setInnoAcronym('');
+    setInnoYear(new Date().getFullYear().toString());
+    setInnoCategory('Sistem Penilaian Digital TVET');
+    setInnoDesc('');
+    setInnoFeatures('');
+    setInnoStatus('Active');
+    setInnoDriveUrl('');
+    setInnoWebsiteUrl('');
+    setIsInnoModalOpen(true);
+  };
+
+  // CV Attachment Upload Handler
+  const handleCVAttachmentFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = event => {
+      const base64 = event.target?.result as string;
+      if (base64) {
+        setCvAttachUrl(base64);
+        if (!cvAttachTitle) {
+          setCvAttachTitle(file.name.replace(/\.[^/.]+$/, ''));
+        }
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveCVAttachment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cvAttachTitle.trim() || !cvAttachUrl.trim()) {
+      alert('Sila masukkan tajuk dan pilih imej atau pautan URL.');
+      return;
+    }
+    addCVImageAttachment({
+      title: cvAttachTitle,
+      url: cvAttachUrl,
+      type: cvAttachType,
+      description: cvAttachDesc,
+    });
+    notify('Lampiran imej dokumen CV berjaya ditambah!');
+    setIsCVAttachModalOpen(false);
+    setCvAttachTitle('');
+    setCvAttachUrl('');
+    setCvAttachDesc('');
+  };
+
+  // CV Education Submit
+  const handleSaveCVEdu = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cvEduDegree.trim() || !cvEduInst.trim()) {
+      alert('Sila lengkapkan maklumat kelayakan.');
+      return;
+    }
+    addCVEducation({
+      degree: cvEduDegree,
+      field: cvEduField,
+      institution: cvEduInst,
+      year: cvEduYear,
+    });
+    notify('Kelayakan akademik baru berjaya ditambah ke CV!');
+    setIsCVEduModalOpen(false);
+    setCvEduDegree('');
+    setCvEduField('');
+    setCvEduInst('');
+  };
+
+  // CV Experience Submit
+  const handleSaveCVExp = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cvExpRole.trim() || !cvExpInst.trim()) {
+      alert('Sila lengkapkan maklumat perkhidmatan.');
+      return;
+    }
+    const hList = cvExpHighlights
+      .split('\n')
+      .map(h => h.trim())
+      .filter(Boolean);
+    addCVExperience({
+      role: cvExpRole,
+      period: cvExpPeriod,
+      institution: cvExpInst,
+      department: cvExpDept,
+      highlights: hList,
+    });
+    notify('Sejarah perkhidmatan baru berjaya ditambah ke CV!');
+    setIsCVExpModalOpen(false);
+    setCvExpRole('');
+    setCvExpPeriod('');
+    setCvExpInst('');
+    setCvExpDept('');
+    setCvExpHighlights('');
+  };
+
+  // CV Award Submit
+  const handleSaveCVAward = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cvAwardTitle.trim() || !cvAwardIssuer.trim()) {
+      alert('Sila lengkapkan maklumat anugerah.');
+      return;
+    }
+    addCVAward({
+      title: cvAwardTitle,
+      year: cvAwardYear,
+      issuer: cvAwardIssuer,
+      type: cvAwardType,
+    });
+    notify('Anugerah baru berjaya ditambah ke CV!');
+    setIsCVAwardModalOpen(false);
+    setCvAwardTitle('');
+    setCvAwardIssuer('');
+  };
+
+  // NavLink Submit
+  const handleSaveNavLink = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!navTitle.trim() || !navUrl.trim()) {
+      alert('Sila masukkan tajuk dan URL.');
+      return;
+    }
+    addAdminNavLink({
+      title: navTitle,
+      url: navUrl,
+      type: navType,
+      category: navCategory,
+      description: navDesc,
+      badge: navBadge || (navType === 'drive' ? 'Google Drive' : 'Website'),
+    });
+    notify('Pautan navigasi rasmi berjaya ditambah!');
+    setIsNavLinkModalOpen(false);
+    setNavTitle('');
+    setNavUrl('');
+    setNavDesc('');
+    setNavBadge('');
+  };
+
+  // Delete Action Confirm
+  const triggerDelete = (id: string, title: string, type: string) => {
+    setDeleteTarget({ id, title, type });
     setConfirmModalOpen(true);
   };
 
-  const confirmDelete = () => {
+  const handleConfirmDelete = () => {
     if (!deleteTarget) return;
-
-    if (deleteTarget.tab === 'publications') {
-      deleteAdminPublication(deleteTarget.id);
-      notify('🗑️ Penerbitan berjaya dipadam.');
-    } else if (deleteTarget.tab === 'innovations') {
-      deleteAdminInnovation(deleteTarget.id);
-      notify('🗑️ Inovasi berjaya dipadam.');
-    } else if (deleteTarget.tab === 'courses') {
-      deleteAdminCourse(deleteTarget.id);
-      notify('🗑️ Kursus berjaya dipadam.');
-    } else if (deleteTarget.tab === 'navlinks') {
-      deleteAdminNavLink(deleteTarget.id);
-      notify('🗑️ Pautan navigasi berjaya dipadam.');
+    const { id, type } = deleteTarget;
+    if (type === 'expertise') {
+      deleteAdminExpertise(id);
+      notify('Bidang kepakaran berjaya dipadam.');
+    } else if (type === 'research') {
+      deleteAdminResearch(id);
+      notify('Penyelidikan berjaya dipadam.');
+    } else if (type === 'innovation') {
+      deleteAdminInnovation(id);
+      notify('Projek inovasi berjaya dipadam.');
+    } else if (type === 'cv-image') {
+      deleteCVImageAttachment(id);
+      notify('Lampiran imej CV berjaya dipadam.');
+    } else if (type === 'cv-edu') {
+      deleteCVEducation(id);
+      notify('Kelayakan akademik dipadam dari CV.');
+    } else if (type === 'cv-exp') {
+      deleteCVExperience(id);
+      notify('Sejarah perkhidmatan dipadam dari CV.');
+    } else if (type === 'cv-award') {
+      deleteCVAward(id);
+      notify('Anugerah dipadam dari CV.');
+    } else if (type === 'navlink') {
+      deleteAdminNavLink(id);
+      notify('Pautan navigasi dipadam.');
     }
-
     setConfirmModalOpen(false);
     setDeleteTarget(null);
   };
 
-  // Filtered Lists
-  const q = search.toLowerCase();
-  const filteredPubs = publications.filter(
-    p =>
-      p.title.toLowerCase().includes(q) ||
-      p.summary.toLowerCase().includes(q) ||
-      p.year.includes(q) ||
-      p.tags?.some(t => t.toLowerCase().includes(q))
-  );
+  // Backup & Reset Handlers
+  const handleExportBackup = () => {
+    const jsonStr = exportAllAdminDataJSON();
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `backup_admin_nadzeffendy_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    notify('Sandaran data (JSON) berjaya dimuat turun!');
+  };
 
-  const filteredInno = innovations.filter(
-    i =>
-      i.title.toLowerCase().includes(q) ||
-      i.acronym.toLowerCase().includes(q) ||
-      i.description.toLowerCase().includes(q) ||
-      i.category.toLowerCase().includes(q)
-  );
+  const handleImportBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const content = ev.target?.result as string;
+      if (content) {
+        const ok = importAllAdminDataJSON(content);
+        if (ok) {
+          notify('Data berjaya dipulihkan daripada fail sandaran!');
+        } else {
+          alert('Format fail JSON tidak sah.');
+        }
+      }
+    };
+    reader.readAsText(file);
+  };
 
-  const filteredCourses = courses.filter(
-    c =>
-      c.name.toLowerCase().includes(q) ||
-      c.code.toLowerCase().includes(q) ||
-      c.description.toLowerCase().includes(q)
-  );
-
-  const filteredNavLinks = navLinks.filter(
-    n =>
-      n.title.toLowerCase().includes(q) ||
-      n.url.toLowerCase().includes(q) ||
-      n.category.toLowerCase().includes(q)
-  );
-
-  // If NOT authenticated, render the exact Content Portal login card
+  // If Not Authenticated, Gate With AdminLoginCard
   if (!isAuthenticated) {
     return (
-      <div className="min-h-[75vh] flex flex-col items-center justify-center bg-slate-50/50 py-12 px-4">
-        <AdminLoginCard onSuccess={() => setIsAuthenticated(true)} />
-        <a
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            window.location.hash = '';
-            window.location.reload();
-          }}
-          className="mt-4 text-xs font-semibold text-slate-500 hover:text-slate-800 underline transition-colors cursor-pointer"
-        >
-          ← Kembali ke Laman Utama
-        </a>
+      <div className="min-h-[85vh] bg-slate-900 flex items-center justify-center py-16 px-4">
+        <div className="max-w-md w-full">
+          <AdminLoginCard onSuccess={() => setIsAuthenticated(true)} />
+        </div>
       </div>
     );
   }
 
-  // If AUTHENTICATED: Full secure Admin Portal with CRUD and Link controls
+  // Filtered views for search
+  const filteredExpertise = expertiseList.filter(
+    e =>
+      e.title.toLowerCase().includes(search.toLowerCase()) ||
+      e.category.toLowerCase().includes(search.toLowerCase()) ||
+      e.description.toLowerCase().includes(search.toLowerCase()) ||
+      e.tags?.some(t => t.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const filteredResearch = researchList.filter(
+    r =>
+      r.title.toLowerCase().includes(search.toLowerCase()) ||
+      r.venue.toLowerCase().includes(search.toLowerCase()) ||
+      r.summary.toLowerCase().includes(search.toLowerCase()) ||
+      r.type.toLowerCase().includes(search.toLowerCase()) ||
+      r.year.includes(search)
+  );
+
+  const filteredInnovations = innovations.filter(
+    i =>
+      i.title.toLowerCase().includes(search.toLowerCase()) ||
+      i.acronym.toLowerCase().includes(search.toLowerCase()) ||
+      i.category.toLowerCase().includes(search.toLowerCase()) ||
+      i.description.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-      {/* Top Admin Security Status Bar */}
-      <div className="bg-[#0a1e36] text-white rounded-3xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 border border-blue-900/60">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 pb-24">
+      {/* Top Banner & Control Header */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-[#0c1f38] via-[#102a4c] to-[#0a1e36] text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 border border-slate-700/60">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="bg-amber-400 text-slate-950 font-black text-[10px] tracking-widest px-3 py-1 rounded-full uppercase">
-              CONTENT PORTAL • ADMIN MODE
-            </span>
-            <span className="text-xs text-emerald-400 font-bold flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Akses Selamat Aktif</span>
-            </span>
+          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-amber-400">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>MOD PENTADBIR KESELAMATAN TINGGI (CRUD & KAWALAN LAMAN)</span>
           </div>
-          <h1 className="text-2xl font-black text-white tracking-tight">
-            Portal Kandungan — {profile.name}
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-1 text-white">
+            Panel Kawalan Pentadbir & Pengurusan Kandungan
           </h1>
-          <p className="text-xs text-slate-300 mt-0.5">
-            Anda boleh mengedit penerbitan, inovasi (SISPEN3K), kursus JTMK, serta memasukkan pautan Google Drive dan laman web secara langsung.
+          <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
+            Pengurusan berpusat tanpa sentuh kod: CRUD lengkap bagi Profil, Kepakaran, Penyelidikan, Inovasi TVET, serta CV & Galeri Imej Potret.
           </p>
         </div>
 
-        {/* Admin Header Actions */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             type="button"
-            onClick={handleOpenAdd}
-            className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer hover:scale-102"
+            onClick={handleExportBackup}
+            className="px-3.5 py-2 bg-slate-800/90 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl border border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+            title="Eksport sandaran semua data ke fail JSON"
           >
-            <Plus className="w-4 h-4" />
-            <span>Tambah Item</span>
+            <Download className="w-3.5 h-3.5 text-blue-400" />
+            <span>Sandaran Data (JSON)</span>
           </button>
+
+          <label className="px-3.5 py-2 bg-slate-800/90 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl border border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs">
+            <Upload className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Pulih Data</span>
+            <input type="file" accept=".json" onChange={handleImportBackup} className="hidden" />
+          </label>
 
           <button
             type="button"
             onClick={() => setIsPasswordModalOpen(true)}
-            className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl border border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="px-3.5 py-2 bg-slate-800/90 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl border border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
           >
             <Key className="w-3.5 h-3.5 text-amber-400" />
             <span>Tukar Password</span>
@@ -509,7 +863,7 @@ export const DatabaseHubPage: React.FC = () => {
           <button
             type="button"
             onClick={handleLogout}
-            className="px-3.5 py-2.5 bg-red-950/80 hover:bg-red-900 text-red-200 border border-red-800/60 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="px-3.5 py-2 bg-red-950/80 hover:bg-red-900 text-red-200 border border-red-800/60 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Log Keluar</span>
@@ -520,79 +874,19 @@ export const DatabaseHubPage: React.FC = () => {
       {/* Floating Status Notification */}
       {statusMessage && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold px-4 py-3 rounded-xl shadow-sm flex items-center justify-between animate-in fade-in">
-          <span>{statusMessage}</span>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{statusMessage}</span>
+          </div>
           <button onClick={() => setStatusMessage(null)} className="text-emerald-600 hover:text-emerald-900">
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
-      {/* Admin Tab Navigation */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2">
-        <button
-          type="button"
-          onClick={() => {
-            setCurrentTab('publications');
-            setSearch('');
-          }}
-          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
-            currentTab === 'publications'
-              ? 'bg-[#0c1f38] text-white shadow-md'
-              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-          }`}
-        >
-          <BookOpen className="w-4 h-4 text-emerald-400" />
-          <span>Penerbitan ({publications.length})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setCurrentTab('innovations');
-            setSearch('');
-          }}
-          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
-            currentTab === 'innovations'
-              ? 'bg-[#0c1f38] text-white shadow-md'
-              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-          }`}
-        >
-          <Lightbulb className="w-4 h-4 text-amber-400" />
-          <span>Inovasi (SISPEN3K) ({innovations.length})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setCurrentTab('courses');
-            setSearch('');
-          }}
-          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
-            currentTab === 'courses'
-              ? 'bg-[#0c1f38] text-white shadow-md'
-              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-          }`}
-        >
-          <GraduationCap className="w-4 h-4 text-blue-400" />
-          <span>Kursus JTMK ({courses.length})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setCurrentTab('navlinks');
-            setSearch('');
-          }}
-          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
-            currentTab === 'navlinks'
-              ? 'bg-[#0c1f38] text-white shadow-md'
-              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-          }`}
-        >
-          <LinkIcon className="w-4 h-4 text-purple-400" />
-          <span>Pautan Navigasi & Drive ({navLinks.length})</span>
-        </button>
-
+      {/* Main 5 Admin Tabs explicitly matching user prompt: Profil, Kepakaran, Penyelidikan, Inovasi, CV */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
+        {/* TAB 1: PROFIL */}
         <button
           type="button"
           onClick={() => {
@@ -606,381 +900,628 @@ export const DatabaseHubPage: React.FC = () => {
           }`}
         >
           <User className="w-4 h-4 text-amber-400" />
-          <span>Maklumat Profil & Laman</span>
+          <span>1. Profil & Biodata</span>
+        </button>
+
+        {/* TAB 2: KEPAKARAN */}
+        <button
+          type="button"
+          onClick={() => {
+            setCurrentTab('kepakaran');
+            setSearch('');
+          }}
+          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
+            currentTab === 'kepakaran'
+              ? 'bg-[#0c1f38] text-white shadow-md'
+              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+          }`}
+        >
+          <Award className="w-4 h-4 text-emerald-400" />
+          <span>2. Kepakaran ({expertiseList.length})</span>
+        </button>
+
+        {/* TAB 3: PENYELIDIKAN */}
+        <button
+          type="button"
+          onClick={() => {
+            setCurrentTab('penyelidikan');
+            setSearch('');
+          }}
+          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
+            currentTab === 'penyelidikan'
+              ? 'bg-[#0c1f38] text-white shadow-md'
+              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+          }`}
+        >
+          <BookOpen className="w-4 h-4 text-blue-400" />
+          <span>3. Penyelidikan ({researchList.length})</span>
+        </button>
+
+        {/* TAB 4: INOVASI */}
+        <button
+          type="button"
+          onClick={() => {
+            setCurrentTab('innovations');
+            setSearch('');
+          }}
+          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
+            currentTab === 'innovations'
+              ? 'bg-[#0c1f38] text-white shadow-md'
+              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+          }`}
+        >
+          <Lightbulb className="w-4 h-4 text-amber-400" />
+          <span>4. Inovasi SISPEN3K ({innovations.length})</span>
+        </button>
+
+        {/* TAB 5: CV DENGAN GAMBAR / IMEJ */}
+        <button
+          type="button"
+          onClick={() => {
+            setCurrentTab('cv');
+            setSearch('');
+          }}
+          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
+            currentTab === 'cv'
+              ? 'bg-[#0c1f38] text-white shadow-md'
+              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+          }`}
+        >
+          <ImageIcon className="w-4 h-4 text-pink-400" />
+          <span>5. CV & Galeri Imej/Foto</span>
+        </button>
+
+        {/* UTILITY TAB: PAUTAN NAVIGASI */}
+        <button
+          type="button"
+          onClick={() => {
+            setCurrentTab('navlinks');
+            setSearch('');
+          }}
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ml-auto ${
+            currentTab === 'navlinks'
+              ? 'bg-slate-800 text-white shadow-xs'
+              : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <HardDrive className="w-3.5 h-3.5 text-slate-400" />
+          <span>Pautan Luar ({navLinks.length})</span>
         </button>
       </div>
 
-      {/* Search Filter Bar (for tabs other than profile) */}
-      {currentTab !== 'profile' && (
-        <div className="flex items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
+      {/* =========================================================================
+          TAB 1: PROFIL & BIODATA CRUD
+          ========================================================================= */}
+      {currentTab === 'profile' && (
+        <form onSubmit={handleSaveProfile} className="space-y-6">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">
+                  Maklumat Profil & Biodata Rasmi
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Kemaskini maklumat hero, gelaran akademik DH12, maklumat perhubungan, dan foto potret rasmi.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                className="px-5 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-2 cursor-pointer hover:scale-102"
+              >
+                <Save className="w-4 h-4 text-amber-300" />
+                <span>Simpan Perubahan Profil</span>
+              </button>
+            </div>
+
+            {/* Profile Photo / Avatar Setting with Instant Upload */}
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center gap-6">
+              <div className="relative group shrink-0">
+                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-2 border-amber-400 shadow-md bg-white flex items-center justify-center">
+                  {profilePhotoUrl ? (
+                    <img src={profilePhotoUrl} alt="Foto Profil" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-12 h-12 text-slate-400" />
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => profilePhotoInputRef.current?.click()}
+                  className="absolute inset-0 bg-slate-900/60 rounded-2xl text-white opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-[10px] font-bold cursor-pointer"
+                >
+                  <Camera className="w-5 h-5 mb-1 text-amber-400" />
+                  <span>Tukar Foto</span>
+                </button>
+                <input
+                  ref={profilePhotoInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProfilePhotoFileChange}
+                  className="hidden"
+                />
+              </div>
+
+              <div className="space-y-2 flex-1 w-full text-center sm:text-left">
+                <h4 className="text-sm font-bold text-slate-900">Foto Potret Profil & Hero</h4>
+                <p className="text-xs text-slate-500">
+                  Muat naik imej potret resolusi tinggi (PNG/JPG) atau tampal pautan URL gambar luaran. Imej ini dipaparkan secara langsung pada Laman Utama, Profil, dan CV.
+                </p>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => profilePhotoInputRef.current?.click()}
+                    className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Muat Naik Fail Imej</span>
+                  </button>
+                  <input
+                    type="text"
+                    value={profilePhotoUrl}
+                    onChange={e => setProfilePhotoUrl(e.target.value)}
+                    placeholder="Atau tampal URL imej (https://...)"
+                    className="flex-1 min-w-[200px] text-xs p-1.5 bg-white border border-slate-200 rounded-lg focus:outline-hidden"
+                  />
+                  {profilePhotoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProfilePhotoUrl('');
+                        updateAdminProfile({ photoUrl: '' });
+                      }}
+                      className="text-xs text-red-600 hover:underline px-2"
+                    >
+                      Reset Foto
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Nama Penuh</label>
+                <input
+                  type="text"
+                  value={profileName}
+                  onChange={e => setProfileName(e.target.value)}
+                  className="w-full text-xs sm:text-sm p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Gred Jawatan</label>
+                <input
+                  type="text"
+                  value={profileGrade}
+                  onChange={e => setProfileGrade(e.target.value)}
+                  className="w-full text-xs sm:text-sm p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white"
+                  placeholder="DH12"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Gelaran Jawatan Rasmi</label>
+                <input
+                  type="text"
+                  value={profileTitle}
+                  onChange={e => setProfileTitle(e.target.value)}
+                  className="w-full text-xs sm:text-sm p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white"
+                  placeholder="Pegawai Pendidikan Pengajian Tinggi / Pensyarah Kanan"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Jabatan Akademik</label>
+                <input
+                  type="text"
+                  value={profileDept}
+                  onChange={e => setProfileDept(e.target.value)}
+                  className="w-full text-xs sm:text-sm p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white"
+                  placeholder="Jabatan Teknologi Maklumat dan Komunikasi (JTMK)"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Institusi Politeknik</label>
+                <input
+                  type="text"
+                  value={profileInst}
+                  onChange={e => setProfileInst(e.target.value)}
+                  className="w-full text-xs sm:text-sm p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white"
+                  placeholder="Politeknik Tuanku Syed Sirajuddin (PTSS)"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Nombor Telefon & WhatsApp</label>
+                <input
+                  type="text"
+                  value={profilePhone}
+                  onChange={e => setProfilePhone(e.target.value)}
+                  className="w-full text-xs sm:text-sm p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white"
+                  placeholder="+60194090902"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Emel Rasmi PTSS</label>
+                <input
+                  type="email"
+                  value={profileEmailPTSS}
+                  onChange={e => setProfileEmailPTSS(e.target.value)}
+                  className="w-full text-xs sm:text-sm p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white"
+                  placeholder="nasrul.effendy@ptss.edu.my"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Emel Peribadi</label>
+                <input
+                  type="email"
+                  value={profileEmailPersonal}
+                  onChange={e => setProfileEmailPersonal(e.target.value)}
+                  className="w-full text-xs sm:text-sm p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white"
+                  placeholder="nadzeffendy@gmail.com"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">Biodata Eksekutif / Deskripsi Hero</label>
+              <textarea
+                value={profileBio}
+                onChange={e => setProfileBio(e.target.value)}
+                rows={4}
+                className="w-full text-xs sm:text-sm p-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white leading-relaxed"
+                placeholder="Pendidik berwawasan dan pakar teknologi maklumat..."
+              />
+            </div>
+          </div>
+        </form>
+      )}
+
+      {/* =========================================================================
+          TAB 2: KEPAKARAN CRUD
+          ========================================================================= */}
+      {currentTab === 'kepakaran' && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">
+                Pengurusan Bidang Kepakaran & Kemahiran TVET ({expertiseList.length})
+              </h3>
+              <p className="text-xs text-slate-500">
+                Admin boleh menambah, menyunting tahap kepakaran, mengemaskini pensijilan, dan memadam bidang kepakaran.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleOpenAddExpertise}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto hover:scale-102"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Tambah Kepakaran Baru</span>
+            </button>
+          </div>
+
+          <div className="relative max-w-md">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Cari rekod..."
-              className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-amber-500 shadow-2xs"
+              placeholder="Cari kepakaran (cth: Cisco, Cybersecurity, Inovasi)..."
+              className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-emerald-500"
             />
           </div>
 
-          <button
-            type="button"
-            onClick={handleOpenAdd}
-            className="text-xs font-bold text-blue-700 hover:text-blue-900 flex items-center gap-1 cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Tambah rekod ke bahagian ini</span>
-          </button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredExpertise.map(exp => (
+              <div
+                key={exp.id}
+                className="p-5 rounded-2xl bg-white border border-slate-200 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      {exp.category}
+                    </span>
+                    <span className="text-xs font-bold text-amber-700 font-mono bg-amber-50 px-2 py-0.5 rounded-md">
+                      {exp.level}
+                    </span>
+                  </div>
+
+                  <h4 className="text-base font-bold text-slate-900 leading-snug">{exp.title}</h4>
+                  <p className="text-xs text-slate-600 mt-2 leading-relaxed">{exp.description}</p>
+
+                  {exp.tags && exp.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-3">
+                      {exp.tags.map((t, idx) => (
+                        <span key={idx} className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
+                          #{t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {exp.badge && (
+                    <div className="mt-3 pt-2 border-t border-slate-100 flex items-center gap-1.5 text-xs text-indigo-700 font-semibold">
+                      <Award className="w-3.5 h-3.5 text-amber-500" />
+                      <span>{exp.badge}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditExpertise(exp)}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    <span>Sunting</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => triggerDelete(exp.id, exp.title, 'expertise')}
+                    className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Padam</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       {/* =========================================================================
-          TAB 1: PUBLICATIONS CRUD
+          TAB 3: PENYELIDIKAN CRUD
           ========================================================================= */}
-      {currentTab === 'publications' && (
-        <div className="space-y-4">
-          {filteredPubs.map(pub => (
-            <div
-              key={pub.id}
-              className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-slate-300 transition-all flex flex-col md:flex-row md:items-start justify-between gap-4"
-            >
-              <div className="space-y-2 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
-                    {pub.year}
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold">
-                    {pub.type}
-                  </span>
-                  {pub.venue && (
-                    <span className="text-xs text-slate-500 font-medium line-clamp-1">
-                      • {pub.venue}
-                    </span>
-                  )}
-                </div>
-
-                <h3 className="text-base font-bold text-slate-900 leading-snug">
-                  {pub.title}
-                </h3>
-                <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                  {pub.summary}
-                </p>
-
-                {/* Attached Links Badge & Action Bar */}
-                <div className="pt-2 flex flex-wrap items-center gap-2">
-                  {pub.driveUrl ? (
-                    <a
-                      href={pub.driveUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80 rounded-lg text-xs font-bold transition-colors"
-                    >
-                      <HardDrive className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Google Drive Manuskrip</span>
-                      <ExternalLink className="w-3 h-3 text-amber-500 ml-0.5" />
-                    </a>
-                  ) : (
-                    <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                      <HardDrive className="w-3 h-3" />
-                      <span>Tiada link Drive</span>
-                    </span>
-                  )}
-
-                  {pub.websiteUrl ? (
-                    <a
-                      href={pub.websiteUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200/80 rounded-lg text-xs font-bold transition-colors"
-                    >
-                      <Globe className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Link Laman Web / DOI</span>
-                      <ExternalLink className="w-3 h-3 text-blue-500 ml-0.5" />
-                    </a>
-                  ) : (
-                    <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                      <Globe className="w-3 h-3" />
-                      <span>Tiada link Web</span>
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Buttons: Edit / Delete */}
-              <div className="flex items-center gap-2 pt-2 md:pt-0 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => handleOpenEdit(pub)}
-                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <Edit2 className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Edit & Link</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => promptDelete(pub.id, pub.title)}
-                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
+      {currentTab === 'penyelidikan' && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">
+                Pengurusan Penyelidikan & Penerbitan Ilmiah ({researchList.length})
+              </h3>
+              <p className="text-xs text-slate-500">
+                CRUD bagi jurnal berindeks, persidangan antarabangsa/kebangsaan, geran TVET, dan buku rujukan.
+              </p>
             </div>
-          ))}
+
+            <button
+              type="button"
+              onClick={handleOpenAddResearch}
+              className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto hover:scale-102"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Tambah Penyelidikan Baru</span>
+            </button>
+          </div>
+
+          <div className="relative max-w-md">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Cari penyelidikan (cth: JACoIT, AI, TVET 360)..."
+              className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-blue-500"
+            />
+          </div>
+
+          <div className="space-y-4">
+            {filteredResearch.map(res => (
+              <div
+                key={res.id}
+                className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-slate-300 transition-all flex flex-col md:flex-row md:items-start justify-between gap-4"
+              >
+                <div className="space-y-2 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-800 text-xs font-bold border border-blue-200">
+                      {res.year}
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold">
+                      {res.type}
+                    </span>
+                    <span className="text-xs text-slate-500 font-medium">
+                      • {res.venue}
+                    </span>
+                    {res.status && (
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
+                        {res.status}
+                      </span>
+                    )}
+                  </div>
+
+                  <h4 className="text-base font-bold text-slate-900 leading-snug">{res.title}</h4>
+                  <p className="text-xs text-slate-600 leading-relaxed line-clamp-3">{res.summary}</p>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                    {res.doi && (
+                      <span className="text-slate-500 font-mono">
+                        DOI: <span className="text-blue-600">{res.doi}</span>
+                      </span>
+                    )}
+                    {res.grantAmount && (
+                      <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md font-semibold text-[11px]">
+                        Geran: {res.grantAmount}
+                      </span>
+                    )}
+                    {res.driveUrl && (
+                      <a
+                        href={res.driveUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-blue-700 font-bold hover:underline"
+                      >
+                        <HardDrive className="w-3.5 h-3.5" />
+                        <span>Fail Drive</span>
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-end md:self-start shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditResearch(res)}
+                    className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors cursor-pointer"
+                    title="Sunting Penyelidikan"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => triggerDelete(res.id, res.title, 'research')}
+                    className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-colors cursor-pointer"
+                    title="Padam Penyelidikan"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       {/* =========================================================================
-          TAB 2: INNOVATIONS CRUD (SISPEN3K, iPMAS)
+          TAB 4: INOVASI SISPEN3K CRUD (HANYA DALAM ADMIN SAHAJA)
           ========================================================================= */}
       {currentTab === 'innovations' && (
-        <div className="space-y-4">
-          {filteredInno.map(inv => (
-            <div
-              key={inv.id}
-              className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-slate-300 transition-all flex flex-col md:flex-row md:items-start justify-between gap-4"
-            >
-              <div className="space-y-2 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-900 text-xs font-black">
-                    {inv.acronym}
-                  </span>
-                  <span className="text-xs font-mono font-bold text-slate-500">
-                    {inv.year}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
-                    {inv.status}
-                  </span>
-                </div>
-
-                <h3 className="text-base font-bold text-slate-900 leading-snug">
-                  {inv.title}
-                </h3>
-                <p className="text-xs text-slate-500 font-semibold">{inv.category}</p>
-                <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                  {inv.description}
-                </p>
-
-                {/* Links */}
-                <div className="pt-2 flex flex-wrap items-center gap-2">
-                  {inv.driveUrl ? (
-                    <a
-                      href={inv.driveUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80 rounded-lg text-xs font-bold transition-colors"
-                    >
-                      <HardDrive className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Dokumentasi Google Drive</span>
-                      <ExternalLink className="w-3 h-3 text-amber-500 ml-0.5" />
-                    </a>
-                  ) : (
-                    <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                      <HardDrive className="w-3 h-3" />
-                      <span>Tiada link Drive</span>
-                    </span>
-                  )}
-
-                  {inv.websiteUrl ? (
-                    <a
-                      href={inv.websiteUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200/80 rounded-lg text-xs font-bold transition-colors"
-                    >
-                      <Globe className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Pautan Sistem (Live Web App)</span>
-                      <ExternalLink className="w-3 h-3 text-blue-500 ml-0.5" />
-                    </a>
-                  ) : (
-                    <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                      <Globe className="w-3 h-3" />
-                      <span>Tiada link Web</span>
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 pt-2 md:pt-0 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => handleOpenEdit(inv)}
-                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <Edit2 className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Edit & Link</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => promptDelete(inv.id, `${inv.acronym} - ${inv.title}`)}
-                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
+        <div className="space-y-6">
+          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3">
+            <ShieldCheck className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+            <div>
+              <h4 className="text-xs font-bold text-amber-900 uppercase">
+                Zon Pengurusan Inovasi TVET (Hanya Ada Dalam Admin Sahaja)
+              </h4>
+              <p className="text-xs text-amber-800 leading-relaxed mt-0.5">
+                Mengikut spesifikasi keselamatan data: Rekod inovasi di database dan pengurusan inovasi tidak dipaparkan kepada pelawat awam. Segala penambahan, pengemaskinian status, dan pemadaman inovasi diuruskan secara eksklusif di sini oleh Admin.
+              </p>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
 
-      {/* =========================================================================
-          TAB 3: COURSES CRUD
-          ========================================================================= */}
-      {currentTab === 'courses' && (
-        <div className="space-y-4">
-          {filteredCourses.map(crs => (
-            <div
-              key={crs.id}
-              className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-slate-300 transition-all flex flex-col md:flex-row md:items-start justify-between gap-4"
-            >
-              <div className="space-y-2 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-900 text-xs font-mono font-bold border border-blue-200">
-                    {crs.code}
-                  </span>
-                  <span className="text-xs font-semibold text-slate-500">
-                    {crs.level}
-                  </span>
-                </div>
-
-                <h3 className="text-base font-bold text-slate-900 leading-snug">
-                  {crs.name}
-                </h3>
-                <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                  {crs.description}
-                </p>
-
-                {/* Course links */}
-                <div className="pt-2 flex flex-wrap items-center gap-2">
-                  {crs.driveUrl ? (
-                    <a
-                      href={crs.driveUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80 rounded-lg text-xs font-bold transition-colors"
-                    >
-                      <HardDrive className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Folder Bahan Kuliah di Drive</span>
-                      <ExternalLink className="w-3 h-3 text-amber-500 ml-0.5" />
-                    </a>
-                  ) : (
-                    <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                      <HardDrive className="w-3 h-3" />
-                      <span>Tiada link Drive</span>
-                    </span>
-                  )}
-
-                  {crs.websiteUrl ? (
-                    <a
-                      href={crs.websiteUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200/80 rounded-lg text-xs font-bold transition-colors"
-                    >
-                      <Globe className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Portal e-Learning Kursus</span>
-                      <ExternalLink className="w-3 h-3 text-blue-500 ml-0.5" />
-                    </a>
-                  ) : (
-                    <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                      <Globe className="w-3 h-3" />
-                      <span>Tiada link Web</span>
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 pt-2 md:pt-0 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => handleOpenEdit(crs)}
-                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <Edit2 className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Edit & Link</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => promptDelete(crs.id, `${crs.code} - ${crs.name}`)}
-                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">
+                Senarai Projek Inovasi Digital ({innovations.length})
+              </h3>
+              <p className="text-xs text-slate-500">
+                Urus SISPEN3K, iPMAS, IAS, iCERT, serta pautan sistem web dan Google Drive.
+              </p>
             </div>
-          ))}
-        </div>
-      )}
 
-      {/* =========================================================================
-          TAB 4: NAVIGATION & DRIVE LINKS
-          ========================================================================= */}
-      {currentTab === 'navlinks' && (
-        <div className="space-y-4">
+            <button
+              type="button"
+              onClick={handleOpenAddInno}
+              className="px-4 py-2 bg-[#0c1f38] hover:bg-[#071628] text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto hover:scale-102"
+            >
+              <Plus className="w-4 h-4 text-amber-400" />
+              <span>+ Tambah Inovasi Baru</span>
+            </button>
+          </div>
+
+          <div className="relative max-w-md">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Cari inovasi (cth: SISPEN3K, iPMAS)..."
+              className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-amber-500"
+            />
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredNavLinks.map(nav => (
+            {filteredInnovations.map(inno => (
               <div
-                key={nav.id}
-                className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-slate-300 transition-all flex flex-col justify-between"
+                key={inno.id}
+                className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
               >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-100 text-slate-700">
-                      Kategori: {nav.category}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-black px-2.5 py-0.5 rounded-lg bg-amber-50 text-amber-900 border border-amber-200">
+                      {inno.acronym}
                     </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800">
-                      {nav.type === 'drive' ? 'Google Drive' : 'Website'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-slate-400 font-bold">{inno.year}</span>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          inno.status === 'Completed'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-blue-100 text-blue-800'
+                        }`}
+                      >
+                        {inno.status}
+                      </span>
+                    </div>
                   </div>
 
-                  <h3 className="font-bold text-slate-900 text-sm leading-snug">
-                    {nav.title}
-                  </h3>
+                  <h4 className="text-base font-bold text-slate-900 leading-snug">{inno.title}</h4>
+                  <p className="text-xs text-amber-700 font-semibold mt-0.5 mb-2">{inno.category}</p>
+                  <p className="text-xs text-slate-600 leading-relaxed line-clamp-3">{inno.description}</p>
 
-                  {nav.description && (
-                    <p className="text-xs text-slate-500 line-clamp-2">
-                      {nav.description}
-                    </p>
+                  {inno.features && inno.features.length > 0 && (
+                    <div className="mt-3 pt-2 border-t border-slate-100 space-y-1">
+                      {inno.features.slice(0, 3).map((feat, fIdx) => (
+                        <div key={fIdx} className="flex items-center gap-1.5 text-[11px] text-slate-600">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                          <span className="line-clamp-1">{feat}</span>
+                        </div>
+                      ))}
+                    </div>
                   )}
-
-                  <div className="pt-2">
-                    <a
-                      href={nav.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs text-blue-700 hover:underline font-mono truncate max-w-full"
-                    >
-                      <LinkIcon className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">{nav.url}</span>
-                      <ExternalLink className="w-3 h-3 shrink-0" />
-                    </a>
-                  </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-100 mt-4 flex items-center justify-between">
-                  <span className="text-[11px] text-slate-400 font-medium">
-                    {nav.badge || 'Pautan Rasmi'}
-                  </span>
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {inno.websiteUrl && (
+                      <a
+                        href={inno.websiteUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-bold text-blue-700 hover:underline flex items-center gap-1"
+                      >
+                        <Globe className="w-3.5 h-3.5" />
+                        <span>Sistem Web</span>
+                      </a>
+                    )}
+                    {inno.driveUrl && (
+                      <a
+                        href={inno.driveUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-bold text-amber-700 hover:underline flex items-center gap-1"
+                      >
+                        <HardDrive className="w-3.5 h-3.5" />
+                        <span>Drive Folder</span>
+                      </a>
+                    )}
+                  </div>
+
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => handleOpenEdit(nav)}
-                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                      onClick={() => handleOpenEditInno(inno)}
+                      className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
                     >
-                      <Edit2 className="w-3 h-3 text-blue-600" />
-                      <span>Edit</span>
+                      <Edit2 className="w-3.5 h-3.5" />
+                      <span>Sunting</span>
                     </button>
                     <button
                       type="button"
-                      onClick={() => promptDelete(nav.id, nav.title)}
-                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                      onClick={() => triggerDelete(inno.id, inno.title, 'innovation')}
+                      className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
+                      <span>Padam</span>
                     </button>
                   </div>
                 </div>
@@ -991,330 +1532,491 @@ export const DatabaseHubPage: React.FC = () => {
       )}
 
       {/* =========================================================================
-          TAB 5: PROFILE & PAGE DETAILS EDIT
+          TAB 5: CV CRUD & FUNGSI GAMBAR / IMEJ (Explicit Requirement)
           ========================================================================= */}
-      {currentTab === 'profile' && (
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs">
-          <div className="border-b border-slate-100 pb-4 mb-6">
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-600">
-              PENGURUSAN HALAMAN & MAKLUMAT PERIBADI
-            </span>
-            <h2 className="text-xl font-bold text-[#0c1f38] mt-1">
-              Edit Maklumat Laman & Profil Eksekutif
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Sebarang perubahan di sini akan dikemaskini pada Laman Utama, Profil, dan Header/Footer.
-            </p>
+      {currentTab === 'cv' && (
+        <div className="space-y-8">
+          {/* SECTION A: PENGURUSAN GAMBAR / IMEJ CV */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
+            <div className="border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-2 text-xs font-bold text-pink-600 uppercase tracking-wider">
+                <ImageIcon className="w-4 h-4" />
+                <span>Fungsi Gambar & Media Visual CV</span>
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mt-1">
+                Pengurusan Gambar Potret & Lampiran Sijil CV
+              </h3>
+              <p className="text-xs text-slate-500">
+                Pilih atau muat naik foto rasmi bagi CV Infografik 4 Halaman dan lampirkan imej sijil/anugerah berkaitan.
+              </p>
+            </div>
+
+            <form onSubmit={handleSaveCVMediaSettings} className="space-y-6">
+              <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-50 to-pink-50/30 border border-slate-200 flex flex-col md:flex-row items-center gap-6">
+                <div className="relative group shrink-0">
+                  <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border-2 border-amber-400 shadow-md bg-white flex items-center justify-center">
+                    {cvPhotoInputUrl ? (
+                      <img src={cvPhotoInputUrl} alt="Foto CV" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-16 h-16 text-slate-300" />
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => cvFileInputRef.current?.click()}
+                    className="absolute inset-0 bg-slate-900/60 rounded-2xl text-white opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-[11px] font-bold cursor-pointer"
+                  >
+                    <Camera className="w-6 h-6 mb-1 text-amber-400" />
+                    <span>Tukar Foto CV</span>
+                  </button>
+                  <input
+                    ref={cvFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCVPhotoFileChange}
+                    className="hidden"
+                  />
+                </div>
+
+                <div className="space-y-3 flex-1 w-full">
+                  <div>
+                    <label className="text-xs font-bold text-slate-800 block mb-1">
+                      Gambar Potret Utama CV
+                    </label>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => cvFileInputRef.current?.click()}
+                        className="px-3.5 py-2 bg-[#0c1f38] hover:bg-[#071628] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Pilih & Muat Naik Gambar CV</span>
+                      </button>
+                      <input
+                        type="text"
+                        value={cvPhotoInputUrl}
+                        onChange={e => setCvPhotoInputUrl(e.target.value)}
+                        placeholder="Atau masukkan pautan URL imej potret..."
+                        className="flex-1 min-w-[240px] text-xs p-2 bg-white border border-slate-200 rounded-xl focus:bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 block mb-1">
+                        Kapsyen Gambar Potret
+                      </label>
+                      <input
+                        type="text"
+                        value={cvPhotoCaption}
+                        onChange={e => setCvPhotoCaption(e.target.value)}
+                        className="w-full text-xs p-2 bg-white border border-slate-200 rounded-xl"
+                        placeholder="En. Nasrul Effendy bin Mat Nasir (DH12)"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 block mb-1">
+                        Pautan Muat Turun Fail PDF CV
+                      </label>
+                      <input
+                        type="text"
+                        value={cvPdfUrl}
+                        onChange={e => setCvPdfUrl(e.target.value)}
+                        className="w-full text-xs p-2 bg-white border border-slate-200 rounded-xl"
+                        placeholder="https://drive.google.com/file/d/cv-full.pdf"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Simpan Tetapan Imej CV</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+
+            {/* Sub-section: Lampiran Imej Sijil & Dokumen CV */}
+            <div className="pt-4 border-t border-slate-100 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">
+                    Galeri Lampiran Imej Sijil & Dokumen CV ({cvData.images?.length || 0})
+                  </h4>
+                  <p className="text-xs text-slate-500">
+                    Imej sijil, anugerah, atau transkrip untuk melengkapkan dokumen CV.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsCVAttachModalOpen(true)}
+                  className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5 text-blue-600" />
+                  <span>+ Tambah Lampiran Imej</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {cvData.images?.map(img => (
+                  <div
+                    key={img.id}
+                    className="p-3 bg-white border border-slate-200 rounded-xl shadow-2xs flex flex-col justify-between group"
+                  >
+                    <div>
+                      <div className="h-32 rounded-lg bg-slate-100 overflow-hidden mb-2 relative">
+                        <img src={img.url} alt={img.title} className="w-full h-full object-cover" />
+                        <span className="absolute top-1.5 right-1.5 text-[9px] font-bold px-2 py-0.5 rounded-md bg-slate-900/80 text-white uppercase">
+                          {img.type}
+                        </span>
+                      </div>
+                      <h5 className="font-bold text-xs text-slate-900 line-clamp-1">{img.title}</h5>
+                      {img.description && (
+                        <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5">{img.description}</p>
+                      )}
+                    </div>
+
+                    <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                      <span className="text-[10px] text-slate-400 font-mono">{img.dateAdded}</span>
+                      <button
+                        type="button"
+                        onClick={() => triggerDelete(img.id, img.title, 'cv-image')}
+                        className="text-xs text-red-600 hover:text-red-800 font-semibold cursor-pointer"
+                      >
+                        Padam
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
-          <form onSubmit={handleSaveProfile} className="space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* SECTION B: KELAYAKAN AKADEMIK CV */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Nama Penuh
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={profileName}
-                  onChange={e => setProfileName(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
-                />
+                <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4 text-blue-600" />
+                  <span>Kelayakan Akademik ({cvData.educations?.length || 0})</span>
+                </h4>
               </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Gred Perkhidmatan
-                </label>
-                <input
-                  type="text"
-                  value={profileGrade}
-                  onChange={e => setProfileGrade(e.target.value)}
-                  placeholder="DH12"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Jawatan Rasmi
-                </label>
-                <input
-                  type="text"
-                  value={profileTitle}
-                  onChange={e => setProfileTitle(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Jabatan / Bahagian
-                </label>
-                <input
-                  type="text"
-                  value={profileDept}
-                  onChange={e => setProfileDept(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Nombor Telefon (WhatsApp)
-                </label>
-                <input
-                  type="text"
-                  value={profilePhone}
-                  onChange={e => setProfilePhone(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Emel Rasmi
-                </label>
-                <input
-                  type="email"
-                  value={profileEmail}
-                  onChange={e => setProfileEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Penerangan Bio / Ringkasan Eksekutif
-              </label>
-              <textarea
-                rows={4}
-                value={profileBio}
-                onChange={e => setProfileBio(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"
-              />
-            </div>
-
-            <div className="pt-2 flex justify-end">
               <button
-                type="submit"
-                className="px-6 py-2.5 bg-[#0a1e36] hover:bg-[#071628] text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                type="button"
+                onClick={() => setIsCVEduModalOpen(true)}
+                className="px-3 py-1.5 bg-blue-50 text-blue-900 rounded-lg text-xs font-bold hover:bg-blue-100 cursor-pointer"
               >
-                <Save className="w-4 h-4 text-amber-400" />
-                <span>Simpan Maklumat Profil</span>
+                + Tambah Kelayakan
               </button>
             </div>
-          </form>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {cvData.educations?.map(edu => (
+                <div key={edu.id} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 flex justify-between items-start">
+                  <div>
+                    <span className="text-xs font-bold text-amber-600">{edu.year}</span>
+                    <h5 className="font-bold text-sm text-slate-900">{edu.degree}</h5>
+                    <p className="text-xs text-slate-600">{edu.field}</p>
+                    <p className="text-xs text-slate-500 font-medium">{edu.institution}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => triggerDelete(edu.id, edu.degree, 'cv-edu')}
+                    className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"
+                    title="Padam"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* SECTION C: SEJARAH PERKHIDMATAN CV */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Briefcase className="w-4 h-4 text-indigo-600" />
+                  <span>Sejarah Perkhidmatan & Jawatan ({cvData.experiences?.length || 0})</span>
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCVExpModalOpen(true)}
+                className="px-3 py-1.5 bg-indigo-50 text-indigo-900 rounded-lg text-xs font-bold hover:bg-indigo-100 cursor-pointer"
+              >
+                + Tambah Jawatan
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {cvData.experiences?.map(exp => (
+                <div key={exp.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex justify-between items-start">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
+                        {exp.period}
+                      </span>
+                      <h5 className="font-bold text-sm text-slate-900">{exp.role}</h5>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-1 font-medium">
+                      {exp.institution} {exp.department ? `• ${exp.department}` : ''}
+                    </p>
+                    {exp.highlights && exp.highlights.length > 0 && (
+                      <ul className="mt-2 space-y-0.5 text-[11px] text-slate-500 list-disc list-inside">
+                        {exp.highlights.map((h, hIdx) => (
+                          <li key={hIdx}>{h}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => triggerDelete(exp.id, exp.role, 'cv-exp')}
+                    className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"
+                    title="Padam"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* SECTION D: ANUGERAH & PENGIKTIRAFAN CV */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Award className="w-4 h-4 text-amber-500" />
+                  <span>Anugerah & Pengiktirafan ({cvData.awards?.length || 0})</span>
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCVAwardModalOpen(true)}
+                className="px-3 py-1.5 bg-amber-50 text-amber-900 rounded-lg text-xs font-bold hover:bg-amber-100 cursor-pointer"
+              >
+                + Tambah Anugerah
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {cvData.awards?.map(awd => (
+                <div key={awd.id} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 flex justify-between items-start">
+                  <div>
+                    <span className="text-xs font-bold text-amber-600">{awd.year}</span>
+                    <h5 className="font-bold text-xs text-slate-900 mt-0.5">{awd.title}</h5>
+                    <p className="text-[11px] text-slate-500 mt-0.5">{awd.issuer}</p>
+                    <span className="inline-block mt-1 text-[10px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md font-semibold">
+                      {awd.type}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => triggerDelete(awd.id, awd.title, 'cv-award')}
+                    className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"
+                    title="Padam"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
       {/* =========================================================================
-          ADD / EDIT MODAL FORM
+          TAB 6: UTILITY PAUTAN NAVIGASI LUAR & DRIVE
           ========================================================================= */}
-      {isAddEditModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 relative my-8">
-            <button
-              onClick={() => setIsAddEditModalOpen(false)}
-              className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-800 rounded-xl"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-600">
-                {modalMode === 'add' ? 'TAMBAH REKOD BAHARU' : 'EDIT REKOD & PAUTAN'}
-              </span>
+      {currentTab === 'navlinks' && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">
+                Pautan Navigasi Rasmi, Portal & Google Drive ({navLinks.length})
+              </h3>
+              <p className="text-xs text-slate-500">
+                Urus pautan ke laman web luar, storan awan Google Drive, dan repositori digital.
+              </p>
             </div>
-            <h3 className="text-xl font-black text-[#0c1f38] mb-4">
-              {modalMode === 'add'
-                ? `Tambah ke ${
-                    currentTab === 'publications'
-                      ? 'Penerbitan'
-                      : currentTab === 'innovations'
-                      ? 'Inovasi'
-                      : currentTab === 'courses'
-                      ? 'Kursus'
-                      : 'Pautan Navigasi'
-                  }`
-                : `Kemaskini Rekod: ${formTitle}`}
-            </h3>
 
-            <form onSubmit={handleSave} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  {currentTab === 'courses'
-                    ? 'Nama Kursus'
-                    : currentTab === 'innovations'
-                    ? 'Nama Sistem Inovasi'
-                    : 'Tajuk / Nama'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formTitle}
-                  onChange={e => setFormTitle(e.target.value)}
-                  placeholder="Masukkan tajuk"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:border-amber-500 font-semibold"
-                />
-              </div>
+            <button
+              type="button"
+              onClick={() => setIsNavLinkModalOpen(true)}
+              className="px-4 py-2 bg-[#0c1f38] hover:bg-[#071628] text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto hover:scale-102"
+            >
+              <Plus className="w-4 h-4 text-amber-400" />
+              <span>+ Tambah Pautan Baru</span>
+            </button>
+          </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {navLinks.map(link => (
+              <div
+                key={link.id}
+                className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs flex flex-col justify-between"
+              >
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                    {currentTab === 'courses'
-                      ? 'Kod Kursus'
-                      : currentTab === 'innovations'
-                      ? 'Akronim Inovasi'
-                      : currentTab === 'publications'
-                      ? 'Tahun Penerbitan'
-                      : 'Label Lencana'}
-                  </label>
-                  <input
-                    type="text"
-                    value={formSubtitle}
-                    onChange={e => setFormSubtitle(e.target.value)}
-                    placeholder="Cth: DFC40233 / SISPEN3K / 2026"
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:border-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                    Kategori / Tahap
-                  </label>
-                  {currentTab === 'publications' ? (
-                    <select
-                      value={formCategory}
-                      onChange={e => setFormCategory(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:border-amber-500 cursor-pointer"
+                  <div className="flex items-center justify-between mb-2">
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                        link.type === 'drive'
+                          ? 'bg-blue-50 text-blue-800'
+                          : 'bg-amber-50 text-amber-800'
+                      }`}
                     >
-                      <option value="Journal">Jurnal Berwasit</option>
-                      <option value="Conference Paper">Kertas Persidangan</option>
-                      <option value="Book">Buku Teks / Modul</option>
-                      <option value="Ebook">E-Buku</option>
-                    </select>
-                  ) : (
-                    <input
-                      type="text"
-                      value={formCategory}
-                      onChange={e => setFormCategory(e.target.value)}
-                      placeholder="Cth: Diploma Teknologi Maklumat"
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:border-amber-500"
-                    />
+                      {link.badge || link.type}
+                    </span>
+                    <span className="text-[10px] text-slate-400 uppercase font-mono">{link.category}</span>
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-900 leading-snug">{link.title}</h4>
+                  {link.description && (
+                    <p className="text-xs text-slate-500 mt-1 line-clamp-2">{link.description}</p>
                   )}
                 </div>
-              </div>
 
+                <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-bold text-blue-700 hover:underline flex items-center gap-1"
+                  >
+                    <span>Buka URL</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => triggerDelete(link.id, link.title, 'navlink')}
+                    className="text-xs text-red-600 hover:text-red-800 font-semibold cursor-pointer"
+                  >
+                    Padam
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODALS
+          ========================================================================= */}
+
+      {/* 1. Modal Kepakaran Add/Edit */}
+      {isExpertiseModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h3 className="text-base font-bold text-slate-900">
+                {expertiseModalMode === 'add' ? 'Tambah Bidang Kepakaran Baru' : 'Sunting Bidang Kepakaran'}
+              </h3>
+              <button onClick={() => setIsExpertiseModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveExpertise} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Penerangan / Ringkasan Eksekutif
-                </label>
-                <textarea
-                  rows={3}
-                  value={formDescription}
-                  onChange={e => setFormDescription(e.target.value)}
-                  placeholder="Ringkasan objektif, impak, atau kandungan..."
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-hidden focus:border-amber-500"
-                />
-              </div>
-
-              {/* Website & Drive Link Inputs */}
-              <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200/80 space-y-3">
-                <div className="flex items-center gap-2">
-                  <LinkIcon className="w-4 h-4 text-amber-700" />
-                  <span className="text-xs font-extrabold text-amber-900 uppercase">
-                    Pautan Navigasi ke Website & Google Drive
-                  </span>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                      <HardDrive className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Pautan Google Drive (Fail / Folder Dokumen)</span>
-                    </label>
-                    {formDriveUrl && (
-                      <a
-                        href={formDriveUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[11px] text-blue-600 hover:underline flex items-center gap-1 font-semibold"
-                      >
-                        <span>Uji Pautan</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    )}
-                  </div>
-                  <input
-                    type="url"
-                    value={formDriveUrl}
-                    onChange={e => setFormDriveUrl(e.target.value)}
-                    placeholder="https://drive.google.com/drive/folders/..."
-                    className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono focus:outline-hidden focus:border-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                      <Globe className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Pautan Laman Web / Aplikasi (Live Website / DOI)</span>
-                    </label>
-                    {formWebsiteUrl && (
-                      <a
-                        href={formWebsiteUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[11px] text-blue-600 hover:underline flex items-center gap-1 font-semibold"
-                      >
-                        <span>Uji Pautan</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    )}
-                  </div>
-                  <input
-                    type="url"
-                    value={formWebsiteUrl}
-                    onChange={e => setFormWebsiteUrl(e.target.value)}
-                    placeholder="https://ptss.edu.my/..."
-                    className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono focus:outline-hidden focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Kata Kunci / Tag (Pisahkan dengan koma)
-                </label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Tajuk Kepakaran / Kemahiran</label>
                 <input
                   type="text"
-                  value={formTags}
-                  onChange={e => setFormTags(e.target.value)}
-                  placeholder="Cth: AI, Networking, PTSS, SISPEN3K"
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:border-amber-500"
+                  value={expTitle}
+                  onChange={e => setExpTitle(e.target.value)}
+                  className="w-full text-xs sm:text-sm p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                  placeholder="cth: Keselamatan Siber & InfoSec"
+                  required
                 />
               </div>
 
-              <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Kategori</label>
+                  <select
+                    value={expCategory}
+                    onChange={e => setExpCategory(e.target.value)}
+                    className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                  >
+                    <option value="Teknologi Maklumat">Teknologi Maklumat</option>
+                    <option value="Keselamatan Maklumat">Keselamatan Maklumat</option>
+                    <option value="Teknologi Rangkaian">Teknologi Rangkaian</option>
+                    <option value="Inovasi Digital">Inovasi Digital</option>
+                    <option value="Kecerdasan Buatan">Kecerdasan Buatan</option>
+                    <option value="Pendidikan TVET">Pendidikan TVET</option>
+                    <option value="Konsultansi & Latihan">Konsultansi & Latihan</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Tahap Penguasaan</label>
+                  <select
+                    value={expLevel}
+                    onChange={e => setExpLevel(e.target.value as any)}
+                    className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                  >
+                    <option value="Pakar Utama">Pakar Utama</option>
+                    <option value="Pakar Kanan">Pakar Kanan</option>
+                    <option value="Lanjutan">Lanjutan</option>
+                    <option value="Pengamal">Pengamal</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Huraian & Penerangan Terperinci</label>
+                <textarea
+                  value={expDesc}
+                  onChange={e => setExpDesc(e.target.value)}
+                  rows={3}
+                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl leading-relaxed"
+                  placeholder="Penerangan skop kepakaran..."
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Tag / Kata Kunci (koma dipisahkan)</label>
+                  <input
+                    type="text"
+                    value={expTags}
+                    onChange={e => setExpTags(e.target.value)}
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                    placeholder="Cybersecurity, CIA, Network"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Sijil / Pengiktirafan (Badge)</label>
+                  <input
+                    type="text"
+                    value={expBadge}
+                    onChange={e => setExpBadge(e.target.value)}
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                    placeholder="Cisco CCNA, CIDB Certified"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setIsAddEditModalOpen(false)}
-                  className="px-4 py-2.5 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl cursor-pointer"
+                  onClick={() => setIsExpertiseModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 text-xs font-bold text-white bg-[#0a1e36] hover:bg-[#071628] rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-2"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm"
                 >
-                  <CheckCircle2 className="w-4 h-4 text-amber-400" />
-                  <span>{modalMode === 'add' ? 'Simpan Rekod Baharu' : 'Simpan Kemaskini'}</span>
+                  Simpan Kepakaran
                 </button>
               </div>
             </form>
@@ -1322,66 +2024,745 @@ export const DatabaseHubPage: React.FC = () => {
         </div>
       )}
 
-      {/* Change Password Modal */}
-      {isPasswordModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-200 relative">
-            <button
-              onClick={() => setIsPasswordModalOpen(false)}
-              className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-800 rounded-xl"
-            >
-              <X className="w-5 h-5" />
-            </button>
+      {/* 2. Modal Penyelidikan Add/Edit */}
+      {isResearchModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h3 className="text-base font-bold text-slate-900">
+                {researchModalMode === 'add' ? 'Tambah Penyelidikan & Penerbitan' : 'Sunting Penyelidikan'}
+              </h3>
+              <button onClick={() => setIsResearchModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-600 block mb-1">
-              KESELAMATAN PENTADBIR
-            </span>
-            <h3 className="text-xl font-black text-[#0c1f38] mb-4">
-              Tukar Kata Laluan Admin
-            </h3>
-
-            <form onSubmit={handleChangePassword} className="space-y-4">
+            <form onSubmit={handleSaveResearch} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Kata Laluan Baharu
+                <label className="text-xs font-bold text-slate-700 block mb-1">Tajuk Penyelidikan / Buku</label>
+                <input
+                  type="text"
+                  value={resTitle}
+                  onChange={e => setResTitle(e.target.value)}
+                  className="w-full text-xs sm:text-sm p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                  placeholder="cth: JACoIT 2026: AI and BI in SMEs..."
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Tahun</label>
+                  <input
+                    type="text"
+                    value={resYear}
+                    onChange={e => setResYear(e.target.value)}
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Jenis</label>
+                  <select
+                    value={resType}
+                    onChange={e => setResType(e.target.value as any)}
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  >
+                    <option value="Jurnal Berindeks">Jurnal Berindeks</option>
+                    <option value="Persidangan">Persidangan</option>
+                    <option value="Buku">Buku</option>
+                    <option value="E-Buku">E-Buku</option>
+                    <option value="Geran TVET">Geran TVET</option>
+                    <option value="Kertas Kerja">Kertas Kerja</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Status</label>
+                  <select
+                    value={resStatus}
+                    onChange={e => setResStatus(e.target.value as any)}
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  >
+                    <option value="Diterbitkan">Diterbitkan</option>
+                    <option value="Selesai">Selesai</option>
+                    <option value="Dalam Proses">Dalam Proses</option>
+                    <option value="Aktif">Aktif</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Penerbit / Jurnal / Venue</label>
+                <input
+                  type="text"
+                  value={resVenue}
+                  onChange={e => setResVenue(e.target.value)}
+                  className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  placeholder="Journal of Applied Computing and Information Technology"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">DOI / Pautan Web</label>
+                  <input
+                    type="text"
+                    value={resDoi}
+                    onChange={e => setResDoi(e.target.value)}
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                    placeholder="10.1016/j.jacoit.2026.01.004"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Pautan Google Drive Manuskrip</label>
+                  <input
+                    type="text"
+                    value={resDriveUrl}
+                    onChange={e => setResDriveUrl(e.target.value)}
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                    placeholder="https://drive.google.com/..."
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Ringkasan / Abstrak</label>
+                <textarea
+                  value={resSummary}
+                  onChange={e => setResSummary(e.target.value)}
+                  rows={3}
+                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                  placeholder="Ringkasan dapatan penyelidikan..."
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsResearchModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-xl shadow-sm"
+                >
+                  Simpan Penyelidikan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Modal Inovasi Add/Edit (Hanya Ada Dalam Admin) */}
+      {isInnoModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h3 className="text-base font-bold text-slate-900">
+                {innoModalMode === 'add' ? 'Tambah Inovasi Baru (Admin Sahaja)' : 'Sunting Inovasi (Admin)'}
+              </h3>
+              <button onClick={() => setIsInnoModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveInnovation} className="space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Tajuk Inovasi Penuh</label>
+                  <input
+                    type="text"
+                    value={innoTitle}
+                    onChange={e => setInnoTitle(e.target.value)}
+                    className="w-full text-xs sm:text-sm p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                    placeholder="Sistem Penilaian Bersepadu SISPEN3K"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Akronim</label>
+                  <input
+                    type="text"
+                    value={innoAcronym}
+                    onChange={e => setInnoAcronym(e.target.value)}
+                    className="w-full text-xs sm:text-sm p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                    placeholder="SISPEN3K"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Tahun</label>
+                  <input
+                    type="text"
+                    value={innoYear}
+                    onChange={e => setInnoYear(e.target.value)}
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Kategori Inovasi</label>
+                  <input
+                    type="text"
+                    value={innoCategory}
+                    onChange={e => setInnoCategory(e.target.value)}
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                    placeholder="Sistem Penilaian Digital Kokurikulum"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Penerangan Inovasi</label>
+                <textarea
+                  value={innoDesc}
+                  onChange={e => setInnoDesc(e.target.value)}
+                  rows={3}
+                  className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  placeholder="Huraian objektif dan impak sistem..."
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Ciri-Ciri Utama Inovasi (Satu baris setiap ciri)
                 </label>
+                <textarea
+                  value={innoFeatures}
+                  onChange={e => setInnoFeatures(e.target.value)}
+                  rows={3}
+                  className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  placeholder="Modul penilaian berkomputer&#10;Penjanaan keputusan automatik&#10;Pengesahan penilai KSM"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Pautan Sistem Web Langsung</label>
+                  <input
+                    type="text"
+                    value={innoWebsiteUrl}
+                    onChange={e => setInnoWebsiteUrl(e.target.value)}
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                    placeholder="https://ptss.edu.my/sispen3k"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Pautan Dokumentasi Google Drive</label>
+                  <input
+                    type="text"
+                    value={innoDriveUrl}
+                    onChange={e => setInnoDriveUrl(e.target.value)}
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                    placeholder="https://drive.google.com/..."
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsInnoModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#0c1f38] hover:bg-blue-950 text-white text-xs font-bold rounded-xl shadow-sm"
+                >
+                  Simpan Inovasi
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Modal Lampiran Imej CV */}
+      {isCVAttachModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h3 className="text-base font-bold text-slate-900">
+                Tambah Lampiran Gambar / Imej Sijil CV
+              </h3>
+              <button onClick={() => setIsCVAttachModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCVAttachment} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Tajuk Gambar / Dokumen</label>
+                <input
+                  type="text"
+                  value={cvAttachTitle}
+                  onChange={e => setCvAttachTitle(e.target.value)}
+                  className="w-full text-xs sm:text-sm p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  placeholder="Sijil APC 2015 / Sijil Pingat Emas"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Pilih Fail Imej / Gambar</label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => cvAttachmentInputRef.current?.click()}
+                    className="px-3.5 py-2 bg-blue-50 text-blue-900 border border-blue-200 rounded-xl text-xs font-bold hover:bg-blue-100 cursor-pointer"
+                  >
+                    Muat Naik Gambar
+                  </button>
+                  <input
+                    ref={cvAttachmentInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCVAttachmentFile}
+                    className="hidden"
+                  />
+                  <input
+                    type="text"
+                    value={cvAttachUrl}
+                    onChange={e => setCvAttachUrl(e.target.value)}
+                    placeholder="Atau URL imej https://..."
+                    className="flex-1 text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                    required
+                  />
+                </div>
+              </div>
+
+              {cvAttachUrl && (
+                <div className="h-28 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
+                  <img src={cvAttachUrl} alt="Pratonton" className="w-full h-full object-cover" />
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Jenis Dokumen</label>
+                <select
+                  value={cvAttachType}
+                  onChange={e => setCvAttachType(e.target.value as any)}
+                  className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                >
+                  <option value="certificate">Sijil Penghargaan / Penyertaan</option>
+                  <option value="award">Pingat / Anugerah Cemerlang</option>
+                  <option value="profile">Foto Profil Tambahan</option>
+                  <option value="document">Transkrip / Dokumen Rasmi</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Penerangan Ringkas</label>
+                <input
+                  type="text"
+                  value={cvAttachDesc}
+                  onChange={e => setCvAttachDesc(e.target.value)}
+                  className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  placeholder="Pengiktirafan Kementerian Pendidikan Tinggi"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsCVAttachModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold rounded-xl shadow-sm"
+                >
+                  Simpan Imej ke CV
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Modal Pendidikan CV */}
+      {isCVEduModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h3 className="text-base font-bold text-slate-900">Tambah Kelayakan Akademik</h3>
+              <button onClick={() => setIsCVEduModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCVEdu} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Nama Ijazah / Sijil</label>
+                <input
+                  type="text"
+                  value={cvEduDegree}
+                  onChange={e => setCvEduDegree(e.target.value)}
+                  className="w-full text-xs sm:text-sm p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  placeholder="Ijazah Sarjana Sains (ICT)"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Bidang Pengkhususan</label>
+                <input
+                  type="text"
+                  value={cvEduField}
+                  onChange={e => setCvEduField(e.target.value)}
+                  className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  placeholder="Teknologi Maklumat dan Komunikasi"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-2">
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Institusi / Universiti</label>
+                  <input
+                    type="text"
+                    value={cvEduInst}
+                    onChange={e => setCvEduInst(e.target.value)}
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                    placeholder="Universiti Utara Malaysia (UUM)"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Tahun</label>
+                  <input
+                    type="text"
+                    value={cvEduYear}
+                    onChange={e => setCvEduYear(e.target.value)}
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsCVEduModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-blue-700 text-white text-xs font-bold rounded-xl"
+                >
+                  Simpan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 6. Modal Sejarah Perkhidmatan CV */}
+      {isCVExpModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h3 className="text-base font-bold text-slate-900">Tambah Rekod Perkhidmatan / Jawatan</h3>
+              <button onClick={() => setIsCVExpModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCVExp} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Jawatan / Peranan</label>
+                <input
+                  type="text"
+                  value={cvExpRole}
+                  onChange={e => setCvExpRole(e.target.value)}
+                  className="w-full text-xs sm:text-sm p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  placeholder="Pensyarah Kanan DH12"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Tempoh</label>
+                  <input
+                    type="text"
+                    value={cvExpPeriod}
+                    onChange={e => setCvExpPeriod(e.target.value)}
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                    placeholder="2026 – Sekarang"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Institusi</label>
+                  <input
+                    type="text"
+                    value={cvExpInst}
+                    onChange={e => setCvExpInst(e.target.value)}
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                    placeholder="Politeknik Tuanku Syed Sirajuddin"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Jabatan / Unit</label>
+                <input
+                  type="text"
+                  value={cvExpDept}
+                  onChange={e => setCvExpDept(e.target.value)}
+                  className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  placeholder="Jabatan Teknologi Maklumat dan Komunikasi"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Sorotan Tugas (Setiap baris satu)</label>
+                <textarea
+                  value={cvExpHighlights}
+                  onChange={e => setCvExpHighlights(e.target.value)}
+                  rows={3}
+                  className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  placeholder="Mengetuai inovasi iPMAS&#10;Pengajar kursus Cybersecurity"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsCVExpModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-indigo-700 text-white text-xs font-bold rounded-xl"
+                >
+                  Simpan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 7. Modal Anugerah CV */}
+      {isCVAwardModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h3 className="text-base font-bold text-slate-900">Tambah Anugerah & Pengiktirafan</h3>
+              <button onClick={() => setIsCVAwardModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCVAward} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Tajuk Anugerah</label>
+                <input
+                  type="text"
+                  value={cvAwardTitle}
+                  onChange={e => setCvAwardTitle(e.target.value)}
+                  className="w-full text-xs sm:text-sm p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  placeholder="Anugerah Perkhidmatan Cemerlang (APC)"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Tahun</label>
+                  <input
+                    type="text"
+                    value={cvAwardYear}
+                    onChange={e => setCvAwardYear(e.target.value)}
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Jenis</label>
+                  <select
+                    value={cvAwardType}
+                    onChange={e => setCvAwardType(e.target.value as any)}
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  >
+                    <option value="Anugerah">Anugerah</option>
+                    <option value="Pingat">Pingat</option>
+                    <option value="Sijil">Sijil</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Badan / Agensi Pengeluar</label>
+                <input
+                  type="text"
+                  value={cvAwardIssuer}
+                  onChange={e => setCvAwardIssuer(e.target.value)}
+                  className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  placeholder="Kementerian Pendidikan Tinggi / PTSS"
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsCVAwardModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-amber-600 text-white text-xs font-bold rounded-xl"
+                >
+                  Simpan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 8. Modal Pautan Navigasi Luar */}
+      {isNavLinkModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h3 className="text-base font-bold text-slate-900">Tambah Pautan Navigasi Luar</h3>
+              <button onClick={() => setIsNavLinkModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveNavLink} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Tajuk Pautan</label>
+                <input
+                  type="text"
+                  value={navTitle}
+                  onChange={e => setNavTitle(e.target.value)}
+                  className="w-full text-xs sm:text-sm p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  placeholder="Portal CIDOS PTSS"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">URL Sasaran</label>
+                <input
+                  type="url"
+                  value={navUrl}
+                  onChange={e => setNavUrl(e.target.value)}
+                  className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  placeholder="https://cidos.ptss.edu.my"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Jenis Destinasi</label>
+                  <select
+                    value={navType}
+                    onChange={e => setNavType(e.target.value as any)}
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  >
+                    <option value="website">Laman Web</option>
+                    <option value="drive">Google Drive</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Kategori</label>
+                  <select
+                    value={navCategory}
+                    onChange={e => setNavCategory(e.target.value as any)}
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  >
+                    <option value="teroka">Teroka</option>
+                    <option value="penyelidikan">Penyelidikan</option>
+                    <option value="pengajaran">Pengajaran</option>
+                    <option value="inovasi">Inovasi</option>
+                    <option value="quicklink">Pautan Pantas</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsNavLinkModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#0c1f38] text-white text-xs font-bold rounded-xl"
+                >
+                  Simpan Pautan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 9. Tukar Kata Laluan Modal */}
+      {isPasswordModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-1.5">
+                <Key className="w-4 h-4 text-amber-500" />
+                <span>Tukar Kata Laluan Admin</span>
+              </h3>
+              <button onClick={() => setIsPasswordModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handlePasswordChangeSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Kata Laluan Baru</label>
                 <input
                   type="password"
-                  required
                   value={newPassword}
                   onChange={e => setNewPassword(e.target.value)}
-                  placeholder="Sekurang-kurangnya 4 aksara"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:border-amber-500"
+                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                  placeholder="Sekurang-kurangnya 5 aksara"
+                  required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Sahkan Kata Laluan Baharu
-                </label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Sahkan Kata Laluan</label>
                 <input
                   type="password"
-                  required
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
-                  placeholder="Ulang kata laluan baharu"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:border-amber-500"
+                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                  placeholder="Ulang kata laluan"
+                  required
                 />
               </div>
 
-              <div className="pt-2 flex justify-end gap-2">
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsPasswordModalOpen(false)}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 rounded-xl"
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-bold text-white bg-[#0a1e36] hover:bg-[#071628] rounded-xl shadow-md"
+                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl shadow-xs"
                 >
-                  Simpan Kata Laluan
+                  Kemaskini Kata Laluan
                 </button>
               </div>
             </form>
@@ -1389,16 +2770,19 @@ export const DatabaseHubPage: React.FC = () => {
         </div>
       )}
 
-      {/* Confirmation Modal for Delete */}
+      {/* Confirmation Modal */}
       <ConfirmModal
         isOpen={confirmModalOpen}
-        title="Sahkan Pemadaman Rekod"
-        message={`Adakah anda pasti ingin memadamkan "${deleteTarget?.title}"? Tindakan ini akan mengalih keluar rekod serta pautan navigasi yang berkaitan.`}
+        title="Pengesahan Pemadaman"
+        message={`Adakah anda pasti ingin memadam rekod "${deleteTarget?.title}"? Tindakan ini tidak boleh diundur.`}
         confirmLabel="Ya, Padam Rekod"
         cancelLabel="Batal"
         isDestructive={true}
-        onConfirm={confirmDelete}
-        onCancel={() => setConfirmModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => {
+          setConfirmModalOpen(false);
+          setDeleteTarget(null);
+        }}
       />
     </div>
   );

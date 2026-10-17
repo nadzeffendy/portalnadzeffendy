@@ -12,10 +12,12 @@ import {
   Globe,
   Edit2,
   Plus,
+  Award,
 } from 'lucide-react';
-import { TeachingCourse, PageId } from '../types';
+import { TeachingCourse, ExpertiseItem, PageId } from '../types';
 import {
   getAdminCourses,
+  getAdminExpertise,
   subscribeToAdminData,
 } from '../services/adminDataService';
 
@@ -25,12 +27,15 @@ interface TeachingPageProps {
 
 export const TeachingPage: React.FC<TeachingPageProps> = ({ onNavigate }) => {
   const [courses, setCourses] = useState<TeachingCourse[]>([]);
+  const [expertise, setExpertise] = useState<ExpertiseItem[]>([]);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
     setCourses(getAdminCourses());
+    setExpertise(getAdminExpertise());
     const unsub = subscribeToAdminData(() => {
       setCourses(getAdminCourses());
+      setExpertise(getAdminExpertise());
     });
     return () => unsub();
   }, []);
@@ -66,33 +71,82 @@ export const TeachingPage: React.FC<TeachingPageProps> = ({ onNavigate }) => {
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 uppercase tracking-wider">
             <GraduationCap className="w-4 h-4" />
-            <span>Portfolio Akademik & Kurikulum</span>
+            <span>Kepakaran, Kurikulum & Portfolio Akademik</span>
           </div>
-          <h1 className="text-3xl font-black text-[#0c1f38] mt-1">Pengajaran & Kursus Pengajian</h1>
+          <h1 className="text-3xl font-black text-[#0c1f38] mt-1">Bidang Kepakaran & Pengajaran</h1>
           <p className="text-sm text-slate-500">
-            Kursus-kursus yang dipertanggungjawabkan di bawah Jabatan Teknologi Maklumat dan Komunikasi (JTMK) & Asasi TVET PTSS.
+            Fokus kepakaran profesional, persijilan industri, dan kursus pengajian di bawah JTMK & Asasi TVET PTSS.
           </p>
         </div>
 
-        {/* Action buttons matching Image 2 + Admin CRUD access */}
         <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
-          <button
-            onClick={() => handleOpenDrive('https://drive.google.com/drive/u/0/my-drive')}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs cursor-pointer transition-all hover:scale-102"
-          >
-            <HardDrive className="w-3.5 h-3.5" />
-            <span>Folder Bahan Kuliah di Drive</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate('admin')}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 shadow-xs cursor-pointer transition-all hover:scale-102"
-            title="Tambah atau edit kursus dan pautan Google Drive"
-          >
-            <Edit2 className="w-3.5 h-3.5 text-amber-700" />
-            <span>Urus / Edit Kursus (Admin)</span>
-          </button>
+          <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100">
+            {expertise.length} Bidang Kepakaran Utama
+          </span>
+          <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700">
+            {courses.length} Kursus Pengajian
+          </span>
         </div>
+      </div>
+
+      {/* Showcase Grid: Bidang Kepakaran TVET (From Admin Data) */}
+      {expertise.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold text-slate-900">
+              Bidang Kepakaran & Kemahiran Utama ({expertise.length})
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {expertise.map(exp => (
+              <div
+                key={exp.id}
+                className="p-5 rounded-2xl bg-white border border-slate-200 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2.5">
+                    <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      {exp.category}
+                    </span>
+                    <span className="text-xs font-bold text-amber-700 font-mono bg-amber-50 px-2 py-0.5 rounded-md">
+                      {exp.level}
+                    </span>
+                  </div>
+
+                  <h4 className="text-base font-bold text-slate-900 leading-snug">{exp.title}</h4>
+                  <p className="text-xs text-slate-600 mt-2 leading-relaxed">{exp.description}</p>
+
+                  {exp.tags && exp.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-3">
+                      {exp.tags.map((t, idx) => (
+                        <span key={idx} className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
+                          #{t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {exp.badge && (
+                  <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center gap-1.5 text-xs text-indigo-700 font-semibold">
+                    <Award className="w-3.5 h-3.5 text-amber-500" />
+                    <span>{exp.badge}</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Kursus-Kursus Pengajian Section */}
+      <div className="pt-6 border-t border-slate-200">
+        <h3 className="text-lg font-bold text-slate-900 mb-1">
+          Senarai Kursus Pengajian JTMK & TVET ({courses.length})
+        </h3>
+        <p className="text-xs text-slate-500 mb-5">
+          Modul-modul pengajaran yang dikendalikan di peringkat Diploma dan Asasi Politeknik.
+        </p>
       </div>
 
       {/* Search Input matching Image 2 */}

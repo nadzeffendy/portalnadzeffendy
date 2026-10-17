@@ -346,16 +346,6 @@ export const HomePage: React.FC<HomePageProps> = ({
             </h2>
           </div>
           <div className="mt-4 md:mt-0 flex items-center gap-3">
-            {isAdmin && (
-              <button
-                type="button"
-                onClick={() => onNavigate('admin')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl text-xs font-black shadow-xs cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Tambah Inovasi (Admin)</span>
-              </button>
-            )}
             <button
               onClick={() => onNavigate('innovations')}
               className="text-xs font-bold text-blue-700 hover:text-blue-900 flex items-center gap-1.5 transition-colors cursor-pointer"
@@ -381,16 +371,6 @@ export const HomePage: React.FC<HomePageProps> = ({
                     <span className="text-xs font-bold text-slate-400 font-mono">
                       {inno.year}
                     </span>
-                    {isAdmin && (
-                      <button
-                        type="button"
-                        onClick={() => onNavigate('admin')}
-                        className="p-1 rounded-md text-slate-400 hover:text-amber-600 hover:bg-slate-100 cursor-pointer"
-                        title="Sunting Inovasi ini di Panel Pentadbir"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
                   </div>
                 </div>
 
@@ -612,19 +592,11 @@ export const HomePage: React.FC<HomePageProps> = ({
 
             <div className="flex flex-wrap gap-4">
               <button
-                onClick={() => onNavigate('drive')}
-                className="px-6 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg transition-all flex items-center gap-2.5 cursor-pointer hover:scale-102"
-              >
-                <HardDrive className="w-4 h-4" />
-                <span>Buka Google Drive Portal</span>
-              </button>
-
-              <button
                 onClick={() => onNavigate('publications')}
-                className="px-6 py-3.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-xs sm:text-sm rounded-xl transition-all flex items-center gap-2.5 cursor-pointer hover:scale-102"
+                className="px-6 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs sm:text-sm rounded-xl transition-all flex items-center gap-2.5 cursor-pointer hover:scale-102 shadow-lg"
               >
-                <BookOpen className="w-4 h-4 text-amber-400" />
-                <span>Repositori & Penerbitan</span>
+                <BookOpen className="w-4 h-4 text-amber-300" />
+                <span>Penyelidikan & Penerbitan</span>
               </button>
 
               {isAdmin && (

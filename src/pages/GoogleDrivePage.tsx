@@ -3,536 +3,535 @@ import {
   HardDrive,
   Folder,
   FileText,
-  FileSpreadsheet,
-  FileCode,
-  Image as ImageIcon,
   Search,
-  Upload,
   Plus,
   Trash2,
   ExternalLink,
-  RefreshCw,
-  FolderPlus,
+  Edit2,
+  Copy,
+  Check,
+  FolderOpen,
+  Sparkles,
   ShieldCheck,
-  AlertCircle,
-  File,
-  Filter,
-  CheckCircle2,
+  X,
+  Save,
+  Layers,
+  FileCode,
+  BookOpen,
+  Lightbulb,
 } from 'lucide-react';
-import { DriveFileItem } from '../types';
+import { NavigationLink, PageId } from '../types';
 import {
-  listDriveFiles,
-  uploadFileToDrive,
-  createDriveFolder,
-  deleteDriveFile,
-  formatFileSize,
-} from '../services/driveService';
-import { GoogleSignInButton } from '../components/GoogleSignInButton';
-import { ConfirmModal } from '../components/ConfirmModal';
-import { User as FirebaseUser } from 'firebase/auth';
-import { getAdminNavLinks, subscribeToAdminData } from '../services/adminDataService';
-import { NavigationLink } from '../types';
+  getAdminNavLinks,
+  addAdminNavLink,
+  updateAdminNavLink,
+  deleteAdminNavLink,
+  subscribeToAdminData,
+} from '../services/adminDataService';
+import { isAdminLoggedIn, subscribeToAdminAuth } from '../services/adminAuthService';
 
 interface GoogleDrivePageProps {
-  googleUser: FirebaseUser | null;
-  onGoogleSignIn: () => void;
-  isAuthenticating: boolean;
+  onNavigate?: (page: PageId) => void;
+  isAdmin?: boolean;
 }
 
 export const GoogleDrivePage: React.FC<GoogleDrivePageProps> = ({
-  googleUser,
-  onGoogleSignIn,
-  isAuthenticating,
+  onNavigate,
+  isAdmin: propsIsAdmin,
 }) => {
-  const [files, setFiles] = useState<DriveFileItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(propsIsAdmin ?? isAdminLoggedIn());
+  const [driveLinks, setDriveLinks] = useState<NavigationLink[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<string>('all');
-  const [isLiveDrive, setIsLiveDrive] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [adminDriveLinks, setAdminDriveLinks] = useState<NavigationLink[]>(
-    getAdminNavLinks().filter(l => l.type === 'drive')
-  );
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Modal State for Adding/Editing Google Drive Links
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+  const [activeLinkId, setActiveLinkId] = useState<string | null>(null);
+
+  // Form Fields
+  const [formTitle, setFormTitle] = useState('');
+  const [formUrl, setFormUrl] = useState('');
+  const [formCategory, setFormCategory] = useState<NavigationLink['category']>('teroka');
+  const [formBadge, setFormBadge] = useState('Google Drive');
+  const [formDescription, setFormDescription] = useState('');
+  const [notification, setNotification] = useState<string | null>(null);
+
+  const loadLinks = () => {
+    // Show links of type 'drive' or any navigation link designated for cloud/resources
+    const all = getAdminNavLinks();
+    const driveOnly = all.filter(l => l.type === 'drive' || l.url.includes('drive.google.com'));
+    // If none found with 'drive', fallback to all links
+    setDriveLinks(driveOnly.length > 0 ? driveOnly : all);
+  };
 
   useEffect(() => {
-    setAdminDriveLinks(getAdminNavLinks().filter(l => l.type === 'drive'));
-    const unsub = subscribeToAdminData(() => {
-      setAdminDriveLinks(getAdminNavLinks().filter(l => l.type === 'drive'));
+    loadLinks();
+    setIsAdmin(propsIsAdmin ?? isAdminLoggedIn());
+
+    const unsubData = subscribeToAdminData(() => {
+      loadLinks();
     });
-    return () => unsub();
-  }, []);
+    const unsubAuth = subscribeToAdminAuth(auth => {
+      setIsAdmin(auth);
+    });
 
-  // Modals state
-  const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
-  const [deleteTargetFile, setDeleteTargetFile] = useState<DriveFileItem | null>(null);
+    return () => {
+      unsubData();
+      unsubAuth();
+    };
+  }, [propsIsAdmin]);
 
-  const fetchFiles = async (query?: string) => {
-    setIsLoading(true);
-    setApiError(null);
-    try {
-      const res = await listDriveFiles(query);
-      setFiles(res.files);
-      setIsLiveDrive(res.isLive);
-      if (res.error) {
-        setApiError(res.error);
-      }
-    } catch (err: any) {
-      console.error(err);
-      setApiError(err.message || 'Gagal menyambung ke Google Drive.');
-    } finally {
-      setIsLoading(false);
+  const notify = (msg: string) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(null), 3500);
+  };
+
+  const handleCopy = (url: string, id: string) => {
+    navigator.clipboard.writeText(url);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleOpenAdd = () => {
+    setModalMode('add');
+    setActiveLinkId(null);
+    setFormTitle('');
+    setFormUrl('');
+    setFormCategory('teroka');
+    setFormBadge('Google Drive');
+    setFormDescription('');
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (link: NavigationLink) => {
+    setModalMode('edit');
+    setActiveLinkId(link.id);
+    setFormTitle(link.title);
+    setFormUrl(link.url);
+    setFormCategory(link.category || 'teroka');
+    setFormBadge(link.badge || 'Google Drive');
+    setFormDescription(link.description || '');
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (id: string, title: string) => {
+    if (window.confirm(`Adakah anda pasti ingin memadam pautan Google Drive ini:\n"${title}"?`)) {
+      deleteAdminNavLink(id);
+      notify('🗑️ Pautan Google Drive berjaya dipadam.');
     }
   };
 
-  useEffect(() => {
-    fetchFiles(searchQuery);
-  }, [googleUser]);
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchFiles(searchQuery);
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!googleUser) {
-      alert('Sila log masuk dengan akaun Google terlebih dahulu untuk memuat naik fail ke Google Drive sebenar.');
-      e.target.value = '';
+    if (!formTitle.trim() || !formUrl.trim()) {
+      alert('Sila isi tajuk dan URL Google Drive.');
       return;
     }
 
-    setIsUploading(true);
-    setUploadMessage('Memuat naik fail ke Google Drive...');
-    try {
-      await uploadFileToDrive(file);
-      setUploadMessage(`Fail "${file.name}" berjaya dimuat naik ke Google Drive!`);
-      setTimeout(() => setUploadMessage(null), 4000);
-      await fetchFiles(searchQuery);
-    } catch (err: any) {
-      alert(`Ralat muat naik: ${err.message}`);
-      setUploadMessage(null);
-    } finally {
-      setIsUploading(false);
-      e.target.value = '';
+    if (modalMode === 'add') {
+      addAdminNavLink({
+        title: formTitle.trim(),
+        url: formUrl.trim(),
+        type: 'drive',
+        category: formCategory,
+        badge: formBadge.trim() || 'Google Drive',
+        description: formDescription.trim(),
+      });
+      notify('✅ Pautan Google Drive baharu berjaya dimasukkan!');
+    } else if (activeLinkId) {
+      updateAdminNavLink(activeLinkId, {
+        title: formTitle.trim(),
+        url: formUrl.trim(),
+        type: 'drive',
+        category: formCategory,
+        badge: formBadge.trim() || 'Google Drive',
+        description: formDescription.trim(),
+      });
+      notify('✅ Pautan Google Drive berjaya dikemaskini!');
     }
+
+    setIsModalOpen(false);
   };
 
-  const handleCreateFolder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newFolderName.trim()) return;
+  // Filtered links
+  const filtered = driveLinks.filter(l => {
+    const q = searchQuery.toLowerCase();
+    const matchQuery =
+      l.title.toLowerCase().includes(q) ||
+      (l.description && l.description.toLowerCase().includes(q)) ||
+      (l.badge && l.badge.toLowerCase().includes(q));
 
-    if (!googleUser) {
-      alert('Sila log masuk dengan akaun Google untuk mencipta folder di Google Drive sebenar.');
-      return;
-    }
+    const matchCategory =
+      selectedCategory === 'all' || l.category === selectedCategory;
 
-    try {
-      await createDriveFolder(newFolderName.trim());
-      setIsNewFolderModalOpen(false);
-      setNewFolderName('');
-      setUploadMessage(`Folder "${newFolderName}" berjaya dicipta di Google Drive!`);
-      setTimeout(() => setUploadMessage(null), 4000);
-      await fetchFiles(searchQuery);
-    } catch (err: any) {
-      alert(`Ralat mencipta folder: ${err.message}`);
-    }
-  };
-
-  // Mandatory user confirmation for destructive file deletion
-  const handleConfirmDelete = async () => {
-    if (!deleteTargetFile) return;
-
-    try {
-      if (isLiveDrive) {
-        await deleteDriveFile(deleteTargetFile.id);
-        setUploadMessage(`Fail "${deleteTargetFile.name}" telah dipadam daripada Google Drive.`);
-      } else {
-        // Remove locally from state for demo mode
-        setFiles(prev => prev.filter(f => f.id !== deleteTargetFile.id));
-        setUploadMessage(`Fail "${deleteTargetFile.name}" dipadam dari paparan.`);
-      }
-      setTimeout(() => setUploadMessage(null), 4000);
-      await fetchFiles(searchQuery);
-    } catch (err: any) {
-      alert(`Ralat memadam: ${err.message}`);
-    } finally {
-      setDeleteTargetFile(null);
-    }
-  };
-
-  // File type filtering
-  const filteredFiles = files.filter(f => {
-    if (activeFilter === 'folders') return f.isFolder;
-    if (activeFilter === 'docs')
-      return (
-        f.mimeType.includes('document') ||
-        f.mimeType.includes('word') ||
-        f.mimeType.includes('pdf') ||
-        f.mimeType.includes('text')
-      );
-    if (activeFilter === 'sheets')
-      return f.mimeType.includes('sheet') || f.mimeType.includes('excel') || f.mimeType.includes('csv');
-    if (activeFilter === 'slides')
-      return f.mimeType.includes('presentation') || f.mimeType.includes('powerpoint');
-    if (activeFilter === 'images') return f.mimeType.startsWith('image/');
-    return true;
+    return matchQuery && matchCategory;
   });
 
-  const getFileIcon = (file: DriveFileItem) => {
-    if (file.isFolder) {
-      return <Folder className="w-5 h-5 text-amber-500 flex-shrink-0" />;
-    }
-    const mime = file.mimeType.toLowerCase();
-    if (mime.includes('pdf')) {
-      return <FileText className="w-5 h-5 text-red-500 flex-shrink-0" />;
-    }
-    if (mime.includes('sheet') || mime.includes('excel') || mime.includes('spreadsheet')) {
-      return <FileSpreadsheet className="w-5 h-5 text-emerald-600 flex-shrink-0" />;
-    }
-    if (mime.includes('presentation') || mime.includes('powerpoint')) {
-      return <FileText className="w-5 h-5 text-amber-600 flex-shrink-0" />;
-    }
-    if (mime.startsWith('image/')) {
-      return <ImageIcon className="w-5 h-5 text-blue-500 flex-shrink-0" />;
-    }
-    return <File className="w-5 h-5 text-indigo-500 flex-shrink-0" />;
-  };
-
   return (
-    <div className="space-y-8 pb-16">
-      {/* Header */}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+      {/* Header Profile Title */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-amber-600 uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-wider">
             <HardDrive className="w-4 h-4" />
-            <span>Integrasi Storan Awan Google Workspace</span>
+            <span>Pusat Pautan Dokumen & Repositori Awan</span>
           </div>
-          <h1 className="text-3xl font-black text-slate-900 mt-1">Pengurus Fail Google Drive</h1>
-          <p className="text-sm text-slate-500">
-            Akses dokumen penyelidikan, slaid kuliah, kertas cadangan inovasi, dan repositori rasmi Google Drive secara langsung.
+          <h1 className="text-3xl font-black text-slate-900 mt-1">
+            Repositori Google Drive Rasmi
+          </h1>
+          <p className="text-sm text-slate-500 mt-1 max-w-3xl">
+            Akses terus ke folder kurikulum, slaid kuliah JTMK, manuskrip penyelidikan, dan dokumentasi inovasi TVET En. Nasrul Effendy yang dikongsi melalui Google Drive.
           </p>
         </div>
 
-        {/* Auth / Action Button */}
-        <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
-          {googleUser ? (
-            <div className="flex items-center gap-2">
-              <label className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs cursor-pointer transition-all">
-                <Upload className="w-3.5 h-3.5" />
-                <span>{isUploading ? 'Memuat naik...' : 'Muat Naik ke Drive'}</span>
-                <input
-                  type="file"
-                  onChange={handleFileUpload}
-                  disabled={isUploading}
-                  className="hidden"
-                />
-              </label>
-
-              <button
-                onClick={() => setIsNewFolderModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"
-              >
-                <FolderPlus className="w-3.5 h-3.5 text-slate-600" />
-                <span>Folder Baru</span>
-              </button>
-            </div>
+        {/* Action Button: If Admin, allow quick insert */}
+        <div className="flex items-center gap-3">
+          {isAdmin ? (
+            <button
+              type="button"
+              onClick={handleOpenAdd}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md transition-all cursor-pointer hover:scale-102"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Masukkan Link Google Drive</span>
+            </button>
           ) : (
-            <GoogleSignInButton
-              onClick={onGoogleSignIn}
-              isLoading={isAuthenticating}
-              text="Sambung Google Drive"
-            />
+            <a
+              href="https://drive.google.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 shadow-2xs transition-all cursor-pointer"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
+              <span>Buka Google Drive</span>
+            </a>
           )}
         </div>
       </div>
 
-      {/* Upload or Action Notification */}
-      {uploadMessage && (
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span>{uploadMessage}</span>
-          </div>
-          <button onClick={() => setUploadMessage(null)} className="text-emerald-700 hover:underline">
-            Tutup
-          </button>
-        </div>
-      )}
-
-      {/* Integration Status Banner */}
-      <div
-        className={`p-5 rounded-2xl border transition-all ${
-          isLiveDrive
-            ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
-            : 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200 text-amber-950'
-        }`}
-      >
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      {/* Admin Notice Banner (Explaining to the user that they can insert links without code edits) */}
+      {isAdmin && (
+        <div className="p-4 rounded-2xl bg-amber-50/90 border border-amber-200 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
           <div className="flex items-center gap-3">
-            <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${
-                isLiveDrive ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-white'
-              }`}
-            >
-              <HardDrive className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold shrink-0">
+              <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-sm sm:text-base">
-                  {isLiveDrive
-                    ? `Google Drive Disambungkan (${googleUser?.email || 'Akaun Aktif'})`
-                    : 'Mod Demonstrasi Repositori Akademik Nadz Effendy'}
-                </h3>
-                <span
-                  className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase ${
-                    isLiveDrive ? 'bg-emerald-200 text-emerald-900' : 'bg-amber-200 text-amber-900'
-                  }`}
-                >
-                  {isLiveDrive ? 'Langsung (Live)' : 'Pratonton Kurikulum'}
-                </span>
-              </div>
-              <p className="text-xs text-slate-600 mt-0.5">
-                {isLiveDrive
-                  ? 'Anda sedang melihat fail sebenar daripada Google Drive anda dengan keizinan OAuth yang sah.'
-                  : 'Dokumen di bawah adalah bahan arkib akademik, silibus PTSS dan buku En. Nasrul Effendy. Log masuk untuk memuat naik fail atau melihat storan Google Drive peribadi anda.'}
+              <h4 className="text-xs font-black uppercase tracking-wider text-amber-900">
+                MOD PENTADBIR AKTIF: PENGURUSAN LINK GOOGLE DRIVE (CRUD)
+              </h4>
+              <p className="text-xs text-amber-800 mt-0.5">
+                Anda boleh <strong>menambah, menyunting (edit), dan memadam (delete)</strong> pautan Google Drive ini secara langsung di sini tanpa perlu mengubah sebarang coding!
               </p>
             </div>
           </div>
-
-          {!isLiveDrive && (
-            <GoogleSignInButton
-              onClick={onGoogleSignIn}
-              isLoading={isAuthenticating}
-              text="Log Masuk Google Drive"
-              className="self-stretch sm:self-auto text-xs py-2"
-            />
-          )}
-        </div>
-      </div>
-
-      {apiError && (
-        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          <span>Status API: {apiError}. (Paparan ditukar ke arkib demo)</span>
-        </div>
-      )}
-
-      {/* Pautan Pantas Google Drive Pentadbir */}
-      {adminDriveLinks.length > 0 && (
-        <div className="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl">
-          <div className="flex items-center gap-2 mb-2.5">
-            <Folder className="w-4 h-4 text-amber-500" />
-            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-              Pautan Folder Pantas Google Drive (Ditetapkan Pentadbir)
-            </h4>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {adminDriveLinks.map(link => (
-              <a
-                key={link.id}
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:border-blue-400 hover:text-blue-700 text-slate-800 text-xs font-semibold shadow-2xs transition-all hover:scale-102 cursor-pointer"
-              >
-                <HardDrive className="w-3.5 h-3.5 text-blue-600" />
-                <span>{link.title}</span>
-                <ExternalLink className="w-3 h-3 text-slate-400" />
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Search & Filter Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-        {/* Search Input */}
-        <form onSubmit={handleSearchSubmit} className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Cari fail atau folder dalam Google Drive..."
-            className="w-full pl-10 pr-20 py-2 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-amber-500 shadow-2xs"
-          />
           <button
-            type="submit"
-            className="absolute right-1.5 top-1.5 px-3 py-1 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg cursor-pointer"
+            type="button"
+            onClick={handleOpenAdd}
+            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer shadow-xs"
           >
-            Cari
+            + Tambah Link Drive Sekarang
           </button>
-        </form>
+        </div>
+      )}
 
-        {/* Filter Badges */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+      {/* Notification Toast */}
+      {notification && (
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between animate-in fade-in">
+          <span>{notification}</span>
+          <button onClick={() => setNotification(null)} className="text-emerald-600 hover:text-emerald-900">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Search & Category Filter Bar */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+          {/* Search Box */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Cari nama folder, modul, kertas kerja Google Drive..."
+              className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-blue-500 shadow-2xs font-medium"
+            />
+          </div>
+
+          <span className="text-xs font-semibold text-slate-500 self-center">
+            Menunjukkan {filtered.length} pautan Google Drive
+          </span>
+        </div>
+
+        {/* Category Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none text-xs font-bold">
           {[
-            { id: 'all', label: 'Semua' },
-            { id: 'folders', label: 'Folder' },
-            { id: 'docs', label: 'Dokumen & PDF' },
-            { id: 'sheets', label: 'Spreadsheet' },
-            { id: 'slides', label: 'Slaid' },
-          ].map(f => (
+            { id: 'all', label: 'Semua Folder & Dokumen' },
+            { id: 'inovasi', label: 'Inovasi TVET (SISPEN3K, iPMAS)' },
+            { id: 'penyelidikan', label: 'Penyelidikan & Manuskrip' },
+            { id: 'pengajaran', label: 'Bahan Kuliah & Kursus JTMK' },
+            { id: 'teroka', label: 'Arkib Utama' },
+          ].map(cat => (
             <button
-              key={f.id}
-              onClick={() => setActiveFilter(f.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
-                activeFilter === f.id
-                  ? 'bg-amber-500 text-white shadow-2xs'
-                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              key={cat.id}
+              type="button"
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`px-3.5 py-1.5 rounded-full whitespace-nowrap transition-all cursor-pointer ${
+                selectedCategory === cat.id
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              {f.label}
+              {cat.label}
             </button>
           ))}
-
-          <button
-            onClick={() => fetchFiles(searchQuery)}
-            className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl border border-slate-200 cursor-pointer ml-1"
-            title="Muat Semula Senarai"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
         </div>
       </div>
 
-      {/* Files Grid / List */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
-        <div className="px-6 py-3 border-b border-slate-100 flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider bg-slate-50">
-          <span>Nama Fail & Folder ({filteredFiles.length})</span>
-          <span className="hidden sm:inline">Tindakan</span>
-        </div>
-
-        {isLoading ? (
-          <div className="p-12 text-center text-slate-500 space-y-2">
-            <RefreshCw className="w-6 h-6 animate-spin text-amber-500 mx-auto" />
-            <p className="text-xs font-semibold">Menghubungi Google Drive API v3...</p>
-          </div>
-        ) : filteredFiles.length > 0 ? (
-          <div className="divide-y divide-slate-100">
-            {filteredFiles.map(file => (
-              <div
-                key={file.id}
-                className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/70 transition-colors group"
-              >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  {getFileIcon(file)}
-                  <div className="min-w-0">
-                    <h4 className="text-sm font-bold text-slate-900 truncate group-hover:text-amber-700 transition-colors">
-                      {file.name}
-                    </h4>
-                    <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
-                      <span>{file.isFolder ? 'Folder Fail' : formatFileSize(file.size)}</span>
-                      <span>•</span>
-                      <span>Dikemaskini: {file.modifiedTime ? file.modifiedTime.split('T')[0] : 'N/A'}</span>
-                    </div>
+      {/* Google Drive Links Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filtered.map(link => (
+          <div
+            key={link.id}
+            className="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group hover:-translate-y-1 relative"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold border border-blue-100 shadow-2xs">
+                    <Folder className="w-5 h-5 text-blue-600 fill-blue-600/20" />
+                  </div>
+                  <div>
+                    <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-100/70 text-blue-800 border border-blue-200/60">
+                      {link.badge || 'Google Drive'}
+                    </span>
                   </div>
                 </div>
 
-                {/* Action buttons */}
-                <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
-                  {file.webViewLink && file.webViewLink !== '#' ? (
-                    <a
-                      href={file.webViewLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-amber-100 hover:text-amber-900 rounded-lg transition-colors flex items-center gap-1.5"
-                    >
-                      <span>Buka di Drive</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                  ) : (
+                {/* Admin Actions */}
+                {isAdmin && (
+                  <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200">
                     <button
-                      onClick={() =>
-                        alert(`Membuka maklumat fail "${file.name}". Format: ${file.mimeType}`)
-                      }
-                      className="px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+                      type="button"
+                      onClick={() => handleOpenEdit(link)}
+                      className="p-1.5 rounded-md text-slate-500 hover:text-blue-600 hover:bg-white transition-colors cursor-pointer"
+                      title="Sunting (Edit) Pautan ini"
                     >
-                      Pratonton
+                      <Edit2 className="w-3.5 h-3.5" />
                     </button>
-                  )}
-
-                  <button
-                    onClick={() => setDeleteTargetFile(file)}
-                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                    title="Padam Fail"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(link.id, link.title)}
+                      className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-white transition-colors cursor-pointer"
+                      title="Padam (Delete) Pautan ini"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="p-12 text-center text-slate-500 space-y-2">
-            <HardDrive className="w-8 h-8 text-slate-300 mx-auto" />
-            <p className="text-sm font-bold text-slate-700">Tiada fail padanan dijumpai</p>
-            <p className="text-xs text-slate-400">
-              Cuba padamkan carian atau gunakan butang muat naik untuk menambah fail baru ke Google Drive.
-            </p>
-          </div>
-        )}
-      </div>
 
-      {/* New Folder Modal */}
-      {isNewFolderModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 space-y-4">
-            <div className="flex items-center gap-2 text-slate-900 font-bold text-base">
-              <FolderPlus className="w-5 h-5 text-amber-500" />
-              <span>Cipta Folder Google Drive Baru</span>
+              <h3 className="font-bold text-base text-slate-900 group-hover:text-blue-600 transition-colors leading-snug">
+                {link.title}
+              </h3>
+
+              {link.description && (
+                <p className="text-xs text-slate-500 mt-2 leading-relaxed line-clamp-3">
+                  {link.description}
+                </p>
+              )}
             </div>
 
-            <form onSubmit={handleCreateFolder} className="space-y-4">
+            <div className="mt-6 pt-4 border-t border-slate-100 space-y-3">
+              <div className="flex items-center justify-between text-xs text-slate-400 font-mono">
+                <span className="truncate max-w-[200px]">
+                  {link.url.replace(/^https?:\/\//, '')}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(link.url, link.id)}
+                  className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="Salin Pautan"
+                >
+                  {copiedId === link.id ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </div>
+
+              <a
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-blue-600 text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
+              >
+                <span>Buka di Google Drive</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {filtered.length === 0 && (
+        <div className="p-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+          <FolderOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <h3 className="font-bold text-slate-700 text-base">Tiada Pautan Dijumpai</h3>
+          <p className="text-xs text-slate-400 mt-1">
+            Cuba cari kata kunci lain atau pilih kategori berbeza.
+          </p>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={handleOpenAdd}
+              className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold cursor-pointer"
+            >
+              + Masukkan Pautan Google Drive Sekarang
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Info Callout for Users */}
+      <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h4 className="font-bold text-slate-900">Perlukan bantuan mencari fail kurikulum?</h4>
+          <p className="text-slate-500">
+            Semua bahan disediakan di bawah kebenaran akademik Politeknik Tuanku Syed Sirajuddin. Sila hubungi En. Nasrul Effendy untuk perkongsian hak akses folder tertutup.
+          </p>
+        </div>
+        <a
+          href="https://wa.me/60194090902?text=Salam%20En.%20Nasrul%20Effendy%2C%20saya%20ingin%20memohon%20akses%20ke%20folder%20Google%20Drive."
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold whitespace-nowrap cursor-pointer transition-all"
+        >
+          Hubungi via WhatsApp
+        </a>
+      </div>
+
+      {/* =========================================================================
+          ADD / EDIT MODAL FOR GOOGLE DRIVE LINK
+          ========================================================================= */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                <h3 className="font-extrabold text-slate-900 text-lg">
+                  {modalMode === 'add' ? 'Masukkan Link Google Drive Baharu' : 'Sunting Pautan Google Drive'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Nama Folder</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Tajuk Folder / Nama Dokumen *
+                </label>
                 <input
                   type="text"
                   required
-                  autoFocus
-                  value={newFolderName}
-                  onChange={e => setNewFolderName(e.target.value)}
-                  placeholder="Contoh: Modul Kuliah Cybersecurity 2026"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden text-sm"
+                  placeholder="Cth: Folder Modul DFC20103 / Kertas Kerja iPMAS 2026"
+                  value={formTitle}
+                  onChange={e => setFormTitle(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-blue-500 focus:outline-hidden"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-2">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Pautan URL Google Drive (https://drive.google.com/...) *
+                </label>
+                <input
+                  type="url"
+                  required
+                  placeholder="https://drive.google.com/drive/folders/..."
+                  value={formUrl}
+                  onChange={e => setFormUrl(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-blue-500 focus:outline-hidden font-mono"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Kategori Dokumen
+                  </label>
+                  <select
+                    value={formCategory}
+                    onChange={e => setFormCategory(e.target.value as any)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-blue-500 focus:outline-hidden"
+                  >
+                    <option value="inovasi">Inovasi TVET (SISPEN3K / iPMAS)</option>
+                    <option value="penyelidikan">Penyelidikan & Manuskrip</option>
+                    <option value="pengajaran">Bahan Kuliah & Kursus JTMK</option>
+                    <option value="teroka">Arkib Utama / Teroka</option>
+                    <option value="quicklink">Pautan Pantas</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Label Lencana (Badge)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Cth: Google Drive / Folder Rasmi"
+                    value={formBadge}
+                    onChange={e => setFormBadge(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-blue-500 focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Keterangan Ringkas Dokumen / Kandungan
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Keterangan mengenai kandungan fail atau panduan penggunaan folder Google Drive ini..."
+                  value={formDescription}
+                  onChange={e => setFormDescription(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-blue-500 focus:outline-hidden"
+                />
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setIsNewFolderModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-xs cursor-pointer"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"
                 >
-                  Cipta Folder
+                  <Save className="w-3.5 h-3.5" />
+                  <span>{modalMode === 'add' ? 'Simpan Pautan' : 'Kemaskini Pautan'}</span>
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-
-      {/* Mandatory confirmation dialog for file deletion */}
-      <ConfirmModal
-        isOpen={!!deleteTargetFile}
-        title="Padam Fail Google Drive?"
-        message={`Adakah anda pasti ingin memadam "${deleteTargetFile?.name}" daripada Google Drive? Tindakan ini tidak boleh diundur.`}
-        confirmLabel="Ya, Padam Fail"
-        cancelLabel="Batal"
-        isDestructive={true}
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setDeleteTargetFile(null)}
-      />
     </div>
   );
 };

@@ -140,3 +140,56 @@ export interface DriveFileItem {
   owners?: { displayName: string; emailAddress: string; photoLink?: string }[];
   isFolder?: boolean;
 }
+
+// Kepakaran CRUD Type
+export interface ExpertiseItem {
+  id: string;
+  title: string;
+  category: string;
+  level: 'Pakar Utama' | 'Pakar Kanan' | 'Pakar' | 'Lanjutan' | 'Pengamal';
+  description: string;
+  tags: string[];
+  badge?: string;
+  organization?: string;
+}
+
+// Penyelidikan CRUD Type
+export interface ResearchItem {
+  id: string;
+  title: string;
+  year: string;
+  type: 'Jurnal Berindeks' | 'Persidangan' | 'Buku' | 'E-Buku' | 'Geran TVET' | 'Kertas Kerja';
+  venue: string;
+  doi?: string;
+  summary: string;
+  tags: string[];
+  grantAmount?: string;
+  status: 'Diterbitkan' | 'Selesai' | 'Dalam Proses' | 'Aktif';
+  driveUrl?: string;
+  websiteUrl?: string;
+}
+
+// CV Images & Media Attachments (Photo/Image feature for CV)
+export interface CVImageAttachment {
+  id: string;
+  title: string;
+  url: string; // Base64 data URL or external URL
+  type: 'profile' | 'certificate' | 'award' | 'document';
+  description?: string;
+  dateAdded: string;
+}
+
+// CV Full CRUD Structure
+export interface AdminCVData {
+  photoUrl: string; // Main CV photo (data URL or direct URL)
+  photoCaption?: string;
+  headline?: string;
+  summary?: string;
+  pdfDownloadUrl?: string;
+  images: CVImageAttachment[];
+  educations: Education[];
+  experiences: ServiceRecord[];
+  awards: AwardItem[];
+  memberships: ProfessionalMembership[];
+  skills: string[];
+}

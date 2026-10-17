@@ -84,24 +84,10 @@ export const PublicationsPage: React.FC<PublicationsPageProps> = ({ onNavigate }
           </p>
         </div>
 
-        {/* Action Buttons matching Image 1 + Admin CRUD trigger */}
         <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
-          <button
-            onClick={() => handleOpenDrive('https://drive.google.com/drive/u/0/my-drive')}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs cursor-pointer transition-all hover:scale-102"
-          >
-            <HardDrive className="w-3.5 h-3.5" />
-            <span>Buka Manuskrip di Drive</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate('admin')}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 shadow-xs cursor-pointer transition-all hover:scale-102"
-            title="Urus rekod penerbitan & pautan Google Drive"
-          >
-            <Edit2 className="w-3.5 h-3.5 text-amber-700" />
-            <span>Urus / Edit Penerbitan (Admin)</span>
-          </button>
+          <span className="text-xs font-semibold px-3.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200">
+            {publications.length} Penerbitan Ilmiah & Penyelidikan
+          </span>
         </div>
       </div>
 

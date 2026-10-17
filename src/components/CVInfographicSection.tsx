@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   FileText,
   Download,
@@ -17,6 +17,8 @@ import {
   ChevronRight,
   Globe,
   CheckCircle2,
+  User,
+  Image as ImageIcon,
 } from 'lucide-react';
 import {
   PERSONAL_INFO,
@@ -28,6 +30,11 @@ import {
   MEMBERSHIPS,
   REFERENCES,
 } from '../data/nadzEffendyData';
+import {
+  getAdminCVData,
+  getAdminProfile,
+  subscribeToAdminData,
+} from '../services/adminDataService';
 
 interface CVInfographicSectionProps {
   onOpenPDF?: () => void;
@@ -36,6 +43,18 @@ interface CVInfographicSectionProps {
 export const CVInfographicSection: React.FC<CVInfographicSectionProps> = ({ onOpenPDF }) => {
   const [selectedPage, setSelectedPage] = useState<number | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<'ms' | 'en'>('ms');
+  const [profile, setProfile] = useState(getAdminProfile());
+  const [cvData, setCvData] = useState(getAdminCVData());
+
+  useEffect(() => {
+    setProfile(getAdminProfile());
+    setCvData(getAdminCVData());
+    const unsub = subscribeToAdminData(() => {
+      setProfile(getAdminProfile());
+      setCvData(getAdminCVData());
+    });
+    return () => unsub();
+  }, []);
 
   const handlePrint = () => {
     window.print();
@@ -191,6 +210,43 @@ export const CVInfographicSection: React.FC<CVInfographicSectionProps> = ({ onOp
           </button>
         </div>
 
+        {/* Attached CV Images / Sijil Gallery (From Admin) */}
+        {cvData.images && cvData.images.length > 0 && (
+          <div className="mb-14 pt-8 border-t border-slate-800/80">
+            <div className="flex items-center gap-2 mb-4">
+              <ImageIcon className="w-4 h-4 text-amber-400" />
+              <h4 className="text-xs font-bold uppercase tracking-widest text-slate-300">
+                Lampiran Imej Sijil & Dokumen CV ({cvData.images.length})
+              </h4>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {cvData.images.map(img => (
+                <div
+                  key={img.id}
+                  className="p-3 bg-slate-900/90 rounded-2xl border border-slate-800/80 group hover:border-amber-500/50 transition-all shadow-md"
+                >
+                  <div className="h-36 rounded-xl overflow-hidden mb-2.5 bg-slate-950 relative">
+                    <img
+                      src={img.url}
+                      alt={img.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <span className="absolute bottom-2 left-2 text-[9px] font-bold bg-slate-950/80 text-amber-400 px-2 py-0.5 rounded-md uppercase border border-amber-500/20">
+                      {img.type}
+                    </span>
+                  </div>
+                  <p className="text-xs font-bold text-white line-clamp-1">{img.title}</p>
+                  {img.description && (
+                    <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">
+                      {img.description}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Bottom Utility Bar: Language Selector & PDF/Chat Shortcuts */}
         <div className="border-t border-slate-800/80 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
           {/* Language Switcher Pill matching bottom-left of Screenshot 2 */}
@@ -256,25 +312,38 @@ export const CVInfographicSection: React.FC<CVInfographicSectionProps> = ({ onOp
               {/* PAGE 1 CONTENT */}
               {selectedPage === 1 && (
                 <div className="space-y-6">
-                  {/* Top info card */}
-                  <div className="border border-slate-200 rounded-2xl p-6 bg-slate-50 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div>
-                      <span className="text-xs font-bold text-amber-600 uppercase tracking-wider">
-                        GRED DH12 • PENSYARAH KANAN
-                      </span>
-                      <h4 className="text-2xl font-black text-[#0c1f38]">
-                        {PERSONAL_INFO.name}
-                      </h4>
-                      <p className="text-sm text-slate-600 mt-1">
-                        {PERSONAL_INFO.department}, {PERSONAL_INFO.institution}
-                      </p>
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        <span className="text-xs bg-white border border-slate-200 px-3 py-1 rounded-full font-medium">
-                          Email: {PERSONAL_INFO.emailPTSS}
+                  {/* Top info card with Photo Support */}
+                  <div className="border border-slate-200 rounded-2xl p-6 bg-slate-50 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                      {(cvData.photoUrl || profile.photoUrl) ? (
+                        <img
+                          src={cvData.photoUrl || profile.photoUrl}
+                          alt={profile.name}
+                          className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-2 border-amber-400 shadow-md shrink-0"
+                        />
+                      ) : (
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-200 border-2 border-slate-300 flex items-center justify-center text-slate-400 shrink-0">
+                          <User className="w-10 h-10" />
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-xs font-bold text-amber-600 uppercase tracking-wider">
+                          GRED {profile.grade || 'DH12'} • PENSYARAH KANAN
                         </span>
-                        <span className="text-xs bg-white border border-slate-200 px-3 py-1 rounded-full font-medium">
-                          Telefon: {PERSONAL_INFO.phone}
-                        </span>
+                        <h4 className="text-2xl font-black text-[#0c1f38]">
+                          {profile.name}
+                        </h4>
+                        <p className="text-sm text-slate-600 mt-0.5">
+                          {profile.department}, {profile.institution}
+                        </p>
+                        <div className="flex flex-wrap gap-2 mt-2.5">
+                          <span className="text-xs bg-white border border-slate-200 px-3 py-1 rounded-full font-medium">
+                            Email: {profile.emailPTSS}
+                          </span>
+                          <span className="text-xs bg-white border border-slate-200 px-3 py-1 rounded-full font-medium">
+                            Telefon: {profile.phone}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -286,7 +355,7 @@ export const CVInfographicSection: React.FC<CVInfographicSectionProps> = ({ onOp
                       <span>Kelayakan Akademik</span>
                     </h5>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {EDUCATIONS.map(edu => (
+                      {(cvData.educations && cvData.educations.length > 0 ? cvData.educations : EDUCATIONS).map(edu => (
                         <div key={edu.id} className="p-4 rounded-xl border border-slate-200 bg-white">
                           <span className="text-xs font-bold text-amber-600">{edu.year}</span>
                           <h6 className="font-bold text-sm text-slate-900 mt-0.5">{edu.degree}</h6>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { PageId } from '../types';
 import { PERSONAL_INFO } from '../data/nadzEffendyData';
-import { Mail, Phone, MapPin, HardDrive, Archive, Shield, Award, Lock, ShieldCheck } from 'lucide-react';
+import { Mail, Phone, MapPin, HardDrive, Shield, Award, Lock, ShieldCheck, BookOpen, GraduationCap } from 'lucide-react';
 
 interface FooterProps {
   onNavigate: (page: PageId) => void;
@@ -114,17 +114,17 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenAdminLogin, is
                   onClick={() => onNavigate('publications')}
                   className="flex items-center gap-1.5 hover:text-amber-400 transition-colors cursor-pointer text-slate-400"
                 >
-                  <Archive className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Arkib Dokumen & Penerbitan</span>
+                  <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Penyelidikan & Penerbitan Ilmiah</span>
                 </button>
               </li>
               <li>
                 <button
-                  onClick={() => onNavigate('drive')}
+                  onClick={() => onNavigate('teaching')}
                   className="flex items-center gap-1.5 hover:text-amber-400 transition-colors cursor-pointer text-slate-400"
                 >
-                  <HardDrive className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Integrasi Google Drive REST API</span>
+                  <GraduationCap className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Pengajaran & Kurikulum JTMK</span>
                 </button>
               </li>
               <li>

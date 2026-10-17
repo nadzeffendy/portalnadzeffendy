@@ -167,6 +167,7 @@ export default function App() {
         onGoogleSignOut={handleGoogleSignOut}
         isAuthenticating={isAuthenticating}
         isAdmin={isAdmin}
+        onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
       />
 
       {/* Main Content Area (Full width container allowing edge-to-edge section backgrounds) */}
@@ -194,9 +195,8 @@ export default function App() {
         )}
         {currentPage === 'drive' && (
           <GoogleDrivePage
-            googleUser={googleUser}
-            onGoogleSignIn={handleGoogleSignIn}
-            isAuthenticating={isAuthenticating}
+            onNavigate={handleNavigate}
+            isAdmin={isAdmin}
           />
         )}
         {currentPage === 'contact' && <ContactPage onNavigate={handleNavigate} />}

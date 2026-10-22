@@ -251,7 +251,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
             {/* Right Column: Portrait Photo Visual matching Screenshot 1 */}
             <div className="lg:col-span-5 flex justify-center lg:justify-end relative">
-              <AvatarDisplay size="hero" allowUpload={isAdmin} />
+              <AvatarDisplay size="hero" allowUpload={true} />
             </div>
           </div>
         </div>

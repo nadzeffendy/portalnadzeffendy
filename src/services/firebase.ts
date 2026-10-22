@@ -6,47 +6,67 @@ import {
   onAuthStateChanged,
   User,
   signOut,
+  Auth,
 } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
 
-// Reuse existing app if already initialized
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+// Safe initialization so that domain restrictions or config glitches never crash the app
+let app: any = null;
+let auth: Auth | null = null;
+
+try {
+  if (firebaseConfig && (firebaseConfig as any).apiKey) {
+    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    auth = getAuth(app);
+  }
+} catch (e) {
+  console.warn('Firebase initialization error:', e);
+}
+
+export { auth };
 
 export const provider = new GoogleAuthProvider();
-// Google Drive scopes requested and authorized
 provider.addScope('https://www.googleapis.com/auth/drive.file');
 provider.addScope('https://www.googleapis.com/auth/drive.readonly');
-// Hint user account if desired
 provider.setCustomParameters({
   prompt: 'select_account',
 });
 
-// Flag to track sign-in in progress
 let isSigningIn = false;
-// Memory cache for OAuth access token (per security guideline: do NOT store in localStorage)
 let cachedAccessToken: string | null = null;
 
 export const initAuth = (
   onAuthSuccess?: (user: User, token: string) => void,
   onAuthFailure?: () => void
 ) => {
-  return onAuthStateChanged(auth, async (user: User | null) => {
-    if (user) {
-      if (cachedAccessToken) {
-        if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
-      } else if (!isSigningIn) {
-        // If we have a user but token isn't in memory yet (e.g. reload), trigger a prompt or signal needsAuth
+  if (!auth) {
+    if (onAuthFailure) onAuthFailure();
+    return () => {};
+  }
+  try {
+    return onAuthStateChanged(auth, async (user: User | null) => {
+      if (user) {
+        if (cachedAccessToken) {
+          if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
+        } else if (!isSigningIn) {
+          if (onAuthFailure) onAuthFailure();
+        }
+      } else {
+        cachedAccessToken = null;
         if (onAuthFailure) onAuthFailure();
       }
-    } else {
-      cachedAccessToken = null;
-      if (onAuthFailure) onAuthFailure();
-    }
-  });
+    });
+  } catch (err) {
+    console.warn('onAuthStateChanged error:', err);
+    if (onAuthFailure) onAuthFailure();
+    return () => {};
+  }
 };
 
 export const googleSignIn = async (): Promise<{ user: User; accessToken: string } | null> => {
+  if (!auth) {
+    throw new Error('Firebase Auth tidak tersedia atau belum dikonfigurasikan.');
+  }
   try {
     isSigningIn = true;
     const result = await signInWithPopup(auth, provider);
@@ -74,6 +94,12 @@ export const setCachedToken = (token: string | null) => {
 };
 
 export const logout = async () => {
-  await signOut(auth);
+  if (auth) {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.warn('Sign out error:', err);
+    }
+  }
   cachedAccessToken = null;
 };

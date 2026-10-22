@@ -99,61 +99,61 @@ export const ProfilePage: React.FC = () => {
       {/* Grid: Maklumat Peribadi & Maklumat Perkhidmatan */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
         {/* Maklumat Peribadi */}
-        <div className="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-4 flex flex-col justify-between">
+        <div className="p-7 sm:p-8 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-6 flex flex-col justify-between">
           <div>
-            <div className="flex items-center gap-2 text-indigo-700 font-bold text-base pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2 text-indigo-700 font-bold text-base pb-3.5 border-b border-slate-100">
               <User className="w-5 h-5 text-indigo-600" />
               <span>Maklumat Peribadi</span>
             </div>
 
-            <div className="space-y-3 text-xs sm:text-sm pt-2">
-              <div className="flex justify-between py-1.5 border-b border-slate-50">
+            <div className="space-y-1 text-xs sm:text-sm pt-2">
+              <div className="flex justify-between items-center py-3 border-b border-slate-100">
                 <span className="text-slate-500 font-medium">Nama Penuh:</span>
-                <span className="font-bold text-slate-900">{profile.name}</span>
+                <span className="font-bold text-slate-900 text-right">{profile.name}</span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-50">
+              <div className="flex justify-between items-center py-3 border-b border-slate-100">
                 <span className="text-slate-500 font-medium">Jantina & Kaum:</span>
-                <span className="font-semibold text-slate-900">
+                <span className="font-semibold text-slate-900 text-right">
                   {profile.gender || PERSONAL_INFO.gender} • {profile.ethnicity || PERSONAL_INFO.ethnicity}
                 </span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-50">
+              <div className="flex justify-between items-center py-3 border-b border-slate-100">
                 <span className="text-slate-500 font-medium">No. Telefon Bimbit:</span>
-                <a href={`tel:${profile.phone}`} className="font-bold text-indigo-600 hover:underline">
+                <a href={`tel:${profile.phone}`} className="font-bold text-indigo-600 hover:underline text-right">
                   {profile.phone}
                 </a>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-50">
+              <div className="flex justify-between items-center py-3 border-b border-slate-100">
                 <span className="text-slate-500 font-medium">No. Telefon Pejabat / Faks:</span>
-                <span className="font-semibold text-slate-900">
+                <span className="font-semibold text-slate-900 text-right">
                   {profile.officePhone || PERSONAL_INFO.officePhone} / {profile.officeFax || PERSONAL_INFO.officeFax}
                 </span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-50">
+              <div className="flex justify-between items-center py-3 border-b border-slate-100">
                 <span className="text-slate-500 font-medium">Emel Rasmi PTSS:</span>
-                <a href={`mailto:${profile.emailPTSS}`} className="font-semibold text-slate-800 hover:text-indigo-600">
+                <a href={`mailto:${profile.emailPTSS}`} className="font-semibold text-slate-800 hover:text-indigo-600 text-right">
                   {profile.emailPTSS}
                 </a>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-50">
+              <div className="flex justify-between items-center py-3 border-b border-slate-100">
                 <span className="text-slate-500 font-medium">Emel Alternatif:</span>
-                <a href={`mailto:${profile.emailPersonal}`} className="font-semibold text-slate-800 hover:text-indigo-600">
+                <a href={`mailto:${profile.emailPersonal}`} className="font-semibold text-slate-800 hover:text-indigo-600 text-right">
                   {profile.emailPersonal}
                 </a>
               </div>
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 space-y-2">
+          <div className="pt-4 border-t border-slate-100 space-y-3">
             <div>
-              <span className="text-slate-500 font-medium block text-xs mb-1">Alamat Pejabat:</span>
-              <p className="text-xs font-semibold text-slate-800 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+              <span className="text-slate-500 font-medium block text-xs mb-1.5">Alamat Pejabat:</span>
+              <p className="text-xs font-semibold text-slate-800 bg-slate-50 p-3 rounded-xl border border-slate-100">
                 {PERSONAL_INFO.addressOffice}
               </p>
             </div>
             <div>
-              <span className="text-slate-500 font-medium block text-xs mb-1">Alamat Rumah:</span>
-              <p className="text-xs font-semibold text-slate-800 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+              <span className="text-slate-500 font-medium block text-xs mb-1.5">Alamat Rumah:</span>
+              <p className="text-xs font-semibold text-slate-800 bg-slate-50 p-3 rounded-xl border border-slate-100">
                 {PERSONAL_INFO.addressHome}
               </p>
             </div>

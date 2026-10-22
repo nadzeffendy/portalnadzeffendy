@@ -104,12 +104,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           {/* Desktop Navigation Links (Profil, Kepakaran, Penyelidikan, Inovasi, CV, Teroka ⌵) */}
-          <nav className="hidden lg:flex items-center gap-1 xl:gap-2">
+          <nav className="hidden lg:flex items-center gap-2 xl:gap-3">
             <button
               onClick={() => handleNav('profile')}
-              className={`px-3.5 py-2 text-sm font-medium transition-colors rounded-lg cursor-pointer ${
+              className={`px-4 py-2 text-sm font-medium transition-colors rounded-lg cursor-pointer ${
                 currentPage === 'profile'
-                  ? 'text-slate-950 font-bold'
+                  ? 'text-slate-950 font-bold bg-slate-100/70'
                   : 'text-slate-600 hover:text-slate-950 hover:bg-slate-50'
               }`}
             >
@@ -118,9 +118,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <button
               onClick={() => handleNav('teaching')}
-              className={`px-3.5 py-2 text-sm font-medium transition-colors rounded-lg cursor-pointer ${
+              className={`px-4 py-2 text-sm font-medium transition-colors rounded-lg cursor-pointer ${
                 currentPage === 'teaching'
-                  ? 'text-slate-950 font-bold'
+                  ? 'text-slate-950 font-bold bg-slate-100/70'
                   : 'text-slate-600 hover:text-slate-950 hover:bg-slate-50'
               }`}
             >
@@ -129,9 +129,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <button
               onClick={() => handleNav('publications')}
-              className={`px-3.5 py-2 text-sm font-medium transition-colors rounded-lg cursor-pointer ${
+              className={`px-4 py-2 text-sm font-medium transition-colors rounded-lg cursor-pointer ${
                 currentPage === 'publications'
-                  ? 'text-slate-950 font-bold'
+                  ? 'text-slate-950 font-bold bg-slate-100/70'
                   : 'text-slate-600 hover:text-slate-950 hover:bg-slate-50'
               }`}
             >
@@ -140,9 +140,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <button
               onClick={() => handleNav('innovations')}
-              className={`px-3.5 py-2 text-sm font-medium transition-colors rounded-lg cursor-pointer ${
+              className={`px-4 py-2 text-sm font-medium transition-colors rounded-lg cursor-pointer ${
                 currentPage === 'innovations'
-                  ? 'text-slate-950 font-bold'
+                  ? 'text-slate-950 font-bold bg-slate-100/70'
                   : 'text-slate-600 hover:text-slate-950 hover:bg-slate-50'
               }`}
             >
@@ -151,9 +151,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <button
               onClick={() => handleNav('cv')}
-              className={`px-3.5 py-2 text-sm font-medium transition-colors rounded-lg cursor-pointer ${
+              className={`px-4 py-2 text-sm font-medium transition-colors rounded-lg cursor-pointer ${
                 currentPage === 'cv'
-                  ? 'text-slate-950 font-bold'
+                  ? 'text-slate-950 font-bold bg-slate-100/70'
                   : 'text-slate-600 hover:text-slate-950 hover:bg-slate-50'
               }`}
             >
@@ -165,9 +165,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 type="button"
                 onClick={() => setTerokaOpen(!terokaOpen)}
-                className={`px-3.5 py-2 text-sm font-medium transition-colors rounded-lg flex items-center gap-1.5 cursor-pointer ${
+                className={`px-4 py-2 text-sm font-medium transition-colors rounded-lg flex items-center gap-1.5 cursor-pointer ${
                   isTerokaActive || terokaOpen
-                    ? 'text-slate-950 font-bold'
+                    ? 'text-slate-950 font-bold bg-slate-100/70'
                     : 'text-slate-600 hover:text-slate-950 hover:bg-slate-50'
                 }`}
               >

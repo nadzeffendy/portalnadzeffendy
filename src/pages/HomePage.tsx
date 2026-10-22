@@ -205,7 +205,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 <span className="text-amber-500 font-black">•</span>
                 <span>TVET Researcher</span>
                 <span className="text-amber-500 font-black">•</span>
-                <span>SISPEN3K Digital Innovator</span>
+                <span>Digital Innovator</span>
                 <span className="text-amber-500 font-black">•</span>
                 <span>System Consultant</span>
               </p>
@@ -213,7 +213,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               {/* Bio description */}
               <p className="text-slate-600 text-sm sm:text-base leading-relaxed max-w-xl font-normal">
                 {profile.bio ||
-                  'Pensyarah Kanan dan penyelidik di Politeknik Tuanku Syed Sirajuddin (PTSS) dengan fokus merentas teknologi maklumat, keselamatan siber, inovasi digital TVET (SISPEN3K, iPMAS, IAS, iCERT), pembangunan web & platform, e-pembelajaran, dan sistem data pintar.'}
+                  'Pensyarah Kanan dan penyelidik di Politeknik Tuanku Syed Sirajuddin (PTSS) dengan fokus merentas teknologi maklumat, keselamatan siber, inovasi digital TVET, pembangunan web & platform, e-pembelajaran, dan sistem data pintar.'}
               </p>
 
               {/* Action Buttons matching Screenshot 1: [Lihat CV Lengkap] [Teroka Penyelidikan] */}
@@ -268,7 +268,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           <i className="text-amber-400 not-italic">✦</i>
           <span>TVET 360° & Lifelong Learning</span>
           <i className="text-amber-400 not-italic">✦</i>
-          <span>SISPEN3K Sistem Kemahiran Kelana</span>
+          <span>Digital Innovator</span>
           <i className="text-amber-400 not-italic">✦</i>
           <span>Creative AI & ChatGPT Heroes</span>
           <i className="text-amber-400 not-italic">✦</i>
@@ -287,7 +287,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           <i className="text-amber-400 not-italic">✦</i>
           <span>TVET 360° & Lifelong Learning</span>
           <i className="text-amber-400 not-italic">✦</i>
-          <span>SISPEN3K Sistem Kemahiran Kelana</span>
+          <span>Digital Innovator</span>
           <i className="text-amber-400 not-italic">✦</i>
         </div>
       </section>
@@ -400,31 +400,20 @@ export const HomePage: React.FC<HomePageProps> = ({
                   Status: {inno.status}
                 </span>
                 <div className="flex items-center gap-2">
-                  {inno.driveUrl && (
-                    <a
-                      href={inno.driveUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                      title="Buka Folder Google Drive"
-                    >
-                      <HardDrive className="w-3.5 h-3.5" />
-                    </a>
-                  )}
-                  {inno.websiteUrl && (
-                    <a
-                      href={inno.websiteUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors"
-                      title="Buka Laman Web Inovasi"
-                    >
-                      <Globe className="w-3.5 h-3.5" />
-                    </a>
-                  )}
+                  <a
+                    href={inno.websiteUrl || inno.driveUrl || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 rounded-lg text-xs font-bold transition-colors"
+                    title="Buka Pautan Web"
+                  >
+                    <Globe className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Pautan Web</span>
+                    <ExternalLink className="w-2.5 h-2.5 text-blue-500" />
+                  </a>
                   <button
                     onClick={() => onNavigate('innovations')}
-                    className="text-xs font-bold text-[#0c1f38] hover:text-blue-600 flex items-center gap-1 cursor-pointer"
+                    className="text-xs font-bold text-[#0c1f38] hover:text-blue-600 flex items-center gap-1 cursor-pointer ml-1"
                   >
                     <span>Terperinci</span>
                     <ArrowRight className="w-3.5 h-3.5" />

@@ -131,29 +131,17 @@ export const InnovationsPage: React.FC<InnovationsPageProps> = ({ onNavigate }) 
                 </div>
               )}
 
-              {/* Action buttons matching Image 3 with live Drive/Website URLs */}
+              {/* Action button: Hanya Pautan Web */}
               <div className="pt-4 flex flex-wrap items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => handleOpenDrive(current.driveUrl)}
-                  className="px-4 py-2.5 rounded-xl text-xs font-bold bg-white text-slate-900 hover:bg-slate-100 shadow-md transition-all flex items-center gap-2 cursor-pointer hover:scale-102"
+                  onClick={() => handleOpenWebsite(current.websiteUrl || current.driveUrl || '#')}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md transition-all flex items-center gap-2 cursor-pointer hover:scale-102"
                 >
-                  <HardDrive className="w-4 h-4 text-amber-600" />
-                  <span>Dokumentasi di Google Drive</span>
-                  {current.driveUrl && <ExternalLink className="w-3 h-3 text-slate-500" />}
+                  <Globe className="w-4 h-4" />
+                  <span>Pautan Web</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-white" />
                 </button>
-
-                {current.websiteUrl && (
-                  <button
-                    type="button"
-                    onClick={() => handleOpenWebsite(current.websiteUrl)}
-                    className="px-4 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md transition-all flex items-center gap-2 cursor-pointer hover:scale-102"
-                  >
-                    <Globe className="w-4 h-4" />
-                    <span>Buka Sistem Live Web</span>
-                    <ExternalLink className="w-3 h-3 text-white" />
-                  </button>
-                )}
               </div>
             </div>
 
@@ -228,36 +216,20 @@ export const InnovationsPage: React.FC<InnovationsPageProps> = ({ onNavigate }) 
                   </span>
                 </div>
 
-                {/* Direct quick action buttons */}
-                <div className="flex items-center gap-2 pt-1">
-                  {project.websiteUrl && (
-                    <button
-                      type="button"
-                      onClick={e => {
-                        e.stopPropagation();
-                        handleOpenWebsite(project.websiteUrl);
-                      }}
-                      className="flex-1 py-1.5 px-2 bg-blue-50 hover:bg-blue-100 text-blue-900 rounded-lg text-[11px] font-bold border border-blue-200 flex items-center justify-center gap-1 transition-colors"
-                    >
-                      <Globe className="w-3 h-3 text-blue-600" />
-                      <span>Buka Sistem</span>
-                      <ExternalLink className="w-2.5 h-2.5 text-blue-500" />
-                    </button>
-                  )}
-
-                  {project.driveUrl && (
-                    <button
-                      type="button"
-                      onClick={e => {
-                        e.stopPropagation();
-                        handleOpenDrive(project.driveUrl);
-                      }}
-                      className="flex-1 py-1.5 px-2 bg-slate-50 hover:bg-amber-50 text-slate-700 hover:text-amber-900 rounded-lg text-[11px] font-bold border border-slate-200 flex items-center justify-center gap-1 transition-colors"
-                    >
-                      <HardDrive className="w-3 h-3 text-amber-500" />
-                      <span>Dokumentasi</span>
-                    </button>
-                  )}
+                {/* Direct quick action: Hanya Pautan Web */}
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={e => {
+                      e.stopPropagation();
+                      handleOpenWebsite(project.websiteUrl || project.driveUrl || '#');
+                    }}
+                    className="w-full py-1.5 px-2 bg-blue-50 hover:bg-blue-100 text-blue-900 rounded-lg text-xs font-bold border border-blue-200 flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <Globe className="w-3 h-3 text-blue-600" />
+                    <span>Pautan Web</span>
+                    <ExternalLink className="w-2.5 h-2.5 text-blue-500" />
+                  </button>
                 </div>
               </div>
             </div>

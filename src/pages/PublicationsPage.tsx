@@ -13,12 +13,14 @@ import {
   Plus,
   Edit2,
   Trash2,
+  ShieldCheck,
 } from 'lucide-react';
 import { PublicationItem, PageId } from '../types';
 import {
   getAdminPublications,
   subscribeToAdminData,
 } from '../services/adminDataService';
+import { isAdminLoggedIn } from '../services/adminAuthService';
 
 interface PublicationsPageProps {
   onNavigate: (page: PageId) => void;
@@ -88,6 +90,18 @@ export const PublicationsPage: React.FC<PublicationsPageProps> = ({ onNavigate }
           <span className="text-xs font-semibold px-3.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200">
             {publications.length} Penerbitan Ilmiah & Penyelidikan
           </span>
+
+          {isAdminLoggedIn() && (
+            <button
+              type="button"
+              onClick={() => onNavigate('admin')}
+              className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer hover:scale-102"
+              title="Urus, Tambah & Padam Penyelidikan di Panel Pentadbir"
+            >
+              <ShieldCheck className="w-4 h-4 text-slate-950" />
+              <span>CRUD Penyelidikan</span>
+            </button>
+          )}
         </div>
       </div>
 

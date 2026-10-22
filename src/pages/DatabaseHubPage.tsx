@@ -147,8 +147,8 @@ export const DatabaseHubPage: React.FC = () => {
   const [expertiseModalMode, setExpertiseModalMode] = useState<'add' | 'edit'>('add');
   const [activeExpertiseId, setActiveExpertiseId] = useState<string | null>(null);
   const [expTitle, setExpTitle] = useState('');
-  const [expCategory, setExpCategory] = useState('Teknologi Maklumat');
-  const [expLevel, setExpLevel] = useState<ExpertiseItem['level']>('Pakar Utama');
+  const [expCategory, setExpCategory] = useState('Tenaga Pengajar');
+  const [expLevel, setExpLevel] = useState<string>('Tenaga Pengajar');
   const [expDesc, setExpDesc] = useState('');
   const [expTags, setExpTags] = useState('');
   const [expBadge, setExpBadge] = useState('');
@@ -412,7 +412,7 @@ export const DatabaseHubPage: React.FC = () => {
     setActiveExpertiseId(item.id);
     setExpTitle(item.title);
     setExpCategory(item.category);
-    setExpLevel(item.level);
+    setExpLevel(item.level || 'Tenaga Pengajar');
     setExpDesc(item.description);
     setExpTags((item.tags || []).join(', '));
     setExpBadge(item.badge || '');
@@ -424,8 +424,8 @@ export const DatabaseHubPage: React.FC = () => {
     setExpertiseModalMode('add');
     setActiveExpertiseId(null);
     setExpTitle('');
-    setExpCategory('Teknologi Maklumat');
-    setExpLevel('Pakar Utama');
+    setExpCategory('Tenaga Pengajar');
+    setExpLevel('Tenaga Pengajar');
     setExpDesc('');
     setExpTags('');
     setExpBadge('');
@@ -1229,9 +1229,11 @@ export const DatabaseHubPage: React.FC = () => {
                     <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
                       {exp.category}
                     </span>
-                    <span className="text-xs font-bold text-amber-700 font-mono bg-amber-50 px-2 py-0.5 rounded-md">
-                      {exp.level}
-                    </span>
+                    {exp.level && !exp.level.toLowerCase().includes('pakar') && (
+                      <span className="text-xs font-bold text-slate-700 font-mono bg-slate-100 px-2 py-0.5 rounded-md">
+                        {exp.level}
+                      </span>
+                    )}
                   </div>
 
                   <h4 className="text-base font-bold text-slate-900 leading-snug">{exp.title}</h4>
@@ -1945,6 +1947,8 @@ export const DatabaseHubPage: React.FC = () => {
                     onChange={e => setExpCategory(e.target.value)}
                     className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
                   >
+                    <option value="Tenaga Pengajar">Tenaga Pengajar</option>
+                    <option value="Pereka Grafik">Pereka Grafik</option>
                     <option value="Teknologi Maklumat">Teknologi Maklumat</option>
                     <option value="Keselamatan Maklumat">Keselamatan Maklumat</option>
                     <option value="Teknologi Rangkaian">Teknologi Rangkaian</option>
@@ -1956,14 +1960,18 @@ export const DatabaseHubPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Tahap Penguasaan</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Tahap / Peranan</label>
                   <select
                     value={expLevel}
-                    onChange={e => setExpLevel(e.target.value as any)}
+                    onChange={e => setExpLevel(e.target.value)}
                     className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
                   >
-                    <option value="Pakar Utama">Pakar Utama</option>
-                    <option value="Pakar Kanan">Pakar Kanan</option>
+                    <option value="Tenaga Pengajar">Tenaga Pengajar</option>
+                    <option value="Pereka Grafik">Pereka Grafik</option>
+                    <option value="Penceramah">Penceramah</option>
+                    <option value="Pengamal TVET">Pengamal TVET</option>
+                    <option value="Pembangun Sistem">Pembangun Sistem</option>
+                    <option value="Penulis & Trainer">Penulis & Trainer</option>
                     <option value="Lanjutan">Lanjutan</option>
                     <option value="Pengamal">Pengamal</option>
                   </select>

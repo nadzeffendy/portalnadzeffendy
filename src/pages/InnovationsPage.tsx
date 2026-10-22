@@ -14,12 +14,14 @@ import {
   Globe,
   Edit2,
   Plus,
+  ShieldCheck,
 } from 'lucide-react';
 import { InnovationProject, PageId } from '../types';
 import {
   getAdminInnovations,
   subscribeToAdminData,
 } from '../services/adminDataService';
+import { isAdminLoggedIn } from '../services/adminAuthService';
 
 interface InnovationsPageProps {
   onNavigate: (page: PageId) => void;
@@ -79,6 +81,20 @@ export const InnovationsPage: React.FC<InnovationsPageProps> = ({ onNavigate }) 
             Koleksi sistem pintar dan inovasi digital berimpak tinggi yang dibangunkan untuk memperkasa pengurusan politeknik.
           </p>
         </div>
+
+        {isAdminLoggedIn() && (
+          <div className="flex items-center gap-3 self-start md:self-auto">
+            <button
+              type="button"
+              onClick={() => onNavigate('admin')}
+              className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer hover:scale-102"
+              title="Buka Panel Pentadbir untuk Tambah, Sunting, atau Padam Inovasi"
+            >
+              <ShieldCheck className="w-4 h-4 text-slate-950" />
+              <span>Panel Pentadbir (CRUD Inovasi)</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Hero Spotlight Project matching Image 3 */}

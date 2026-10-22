@@ -1,9 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Camera, Upload, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Camera, Upload } from 'lucide-react';
 import {
   getCustomAvatar,
   setCustomAvatar,
-  resetCustomAvatar,
   subscribeToAvatar,
 } from '../services/avatarService';
 
@@ -130,11 +129,13 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({
       {/* Outer ambient glow */}
       <div className="absolute -inset-4 bg-gradient-to-tr from-indigo-500/20 via-blue-500/15 to-amber-500/10 rounded-[36px] blur-2xl pointer-events-none" />
 
-      {/* Portrait Box - Always clickable to upload */}
+      {/* Portrait Box */}
       <div
-        onClick={() => fileInputRef.current?.click()}
-        className="relative w-[280px] sm:w-[340px] md:w-[380px] h-[380px] sm:h-[460px] md:h-[500px] rounded-3xl overflow-hidden bg-gradient-to-b from-slate-800/80 via-slate-900 to-slate-950 border border-slate-700/60 shadow-2xl group cursor-pointer"
-        title="Klik di sini untuk memuat naik fail foto NADZ.png"
+        onClick={() => (!avatar ? fileInputRef.current?.click() : undefined)}
+        className={`relative w-[280px] sm:w-[340px] md:w-[380px] h-[380px] sm:h-[460px] md:h-[500px] rounded-3xl overflow-hidden bg-gradient-to-b from-slate-800/80 via-slate-900 to-slate-950 border border-slate-700/60 shadow-2xl group ${
+          !avatar ? 'cursor-pointer' : ''
+        }`}
+        title={!avatar ? 'Klik di sini untuk memuat naik fail foto NADZ.png' : undefined}
       >
         {avatar ? (
           <img
@@ -170,43 +171,7 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({
         )}
 
         {/* Subtle shine overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent pointer-events-none" />
-
-        {/* Hover Camera Overlay if avatar is present */}
-        {avatar && (
-          <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer p-4 text-center backdrop-blur-2xs">
-            <Camera className="w-8 h-8 text-amber-400 mb-2 animate-bounce" />
-            <span className="text-xs font-bold text-white">Tukar Foto Profil</span>
-            <span className="text-[10px] text-slate-300 mt-1">Pilih fail gambar dari peranti anda</span>
-          </div>
-        )}
-      </div>
-
-      {/* Bottom Upload Action Buttons */}
-      <div className="mt-4 flex items-center gap-2.5">
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="px-5 py-2.5 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 flex items-center gap-2 cursor-pointer transition-all hover:scale-102 active:scale-98"
-        >
-          <Upload className="w-4 h-4" />
-          <span>{avatar ? 'Tukar Foto NADZ.png' : 'Muat Naik Foto NADZ.png'}</span>
-        </button>
-
-        {avatar && (
-          <button
-            type="button"
-            onClick={() => {
-              if (confirm('Padam gambar tersuai dan pulihkan kepada asal?')) {
-                resetCustomAvatar();
-              }
-            }}
-            className="p-2.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-xl transition-colors cursor-pointer border border-slate-800"
-            title="Padam foto tersuai"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent pointer-events-none" />
       </div>
 
       {/* Hidden file input */}

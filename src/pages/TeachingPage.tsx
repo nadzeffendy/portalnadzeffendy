@@ -13,6 +13,7 @@ import {
   Edit2,
   Plus,
   Award,
+  ShieldCheck,
 } from 'lucide-react';
 import { TeachingCourse, ExpertiseItem, PageId } from '../types';
 import {
@@ -20,6 +21,7 @@ import {
   getAdminExpertise,
   subscribeToAdminData,
 } from '../services/adminDataService';
+import { isAdminLoggedIn } from '../services/adminAuthService';
 
 interface TeachingPageProps {
   onNavigate: (page: PageId) => void;
@@ -81,11 +83,23 @@ export const TeachingPage: React.FC<TeachingPageProps> = ({ onNavigate }) => {
 
         <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
           <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100">
-            {expertise.length} Bidang Kepakaran Utama
+            {expertise.length} Bidang Kepakaran & Kemahiran
           </span>
           <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700">
             {courses.length} Kursus Pengajian
           </span>
+
+          {isAdminLoggedIn() && (
+            <button
+              type="button"
+              onClick={() => onNavigate('admin')}
+              className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer hover:scale-102"
+              title="Urus, Tambah & Padam Kepakaran di Panel Pentadbir"
+            >
+              <ShieldCheck className="w-4 h-4 text-slate-950" />
+              <span>CRUD Kepakaran</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -94,7 +108,7 @@ export const TeachingPage: React.FC<TeachingPageProps> = ({ onNavigate }) => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-slate-900">
-              Bidang Kepakaran & Kemahiran Utama ({expertise.length})
+              Bidang Kepakaran & Kemahiran ({expertise.length})
             </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -108,9 +122,11 @@ export const TeachingPage: React.FC<TeachingPageProps> = ({ onNavigate }) => {
                     <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
                       {exp.category}
                     </span>
-                    <span className="text-xs font-bold text-amber-700 font-mono bg-amber-50 px-2 py-0.5 rounded-md">
-                      {exp.level}
-                    </span>
+                    {exp.level && !exp.level.toLowerCase().includes('pakar') && (
+                      <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100/80">
+                        {exp.level}
+                      </span>
+                    )}
                   </div>
 
                   <h4 className="text-base font-bold text-slate-900 leading-snug">{exp.title}</h4>

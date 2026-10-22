@@ -27,7 +27,7 @@ const STORAGE_KEY_INNOVATIONS = 'nadzeffendy_admin_innovations_v2';
 const STORAGE_KEY_COURSES = 'nadzeffendy_admin_courses_v2';
 const STORAGE_KEY_NAVLINKS = 'nadzeffendy_admin_navlinks_v2';
 const STORAGE_KEY_PROFILE = 'nadzeffendy_admin_profile_v2';
-const STORAGE_KEY_EXPERTISE = 'nadzeffendy_admin_expertise_v2';
+const STORAGE_KEY_EXPERTISE = 'nadzeffendy_admin_expertise_v3';
 const STORAGE_KEY_RESEARCH = 'nadzeffendy_admin_research_v2';
 const STORAGE_KEY_CV = 'nadzeffendy_admin_cv_v2';
 
@@ -148,17 +148,17 @@ const SEEDED_EXPERTISE: ExpertiseItem[] = [
     id: 'exp-1',
     title: 'Keselamatan Siber (Cybersecurity) & InfoSec',
     category: 'Keselamatan Maklumat',
-    level: 'Pakar Utama',
-    description: 'Pakar dalam prinsip kerahsiaan data (CIA triad), pengauditan keselamatan rangkaian, pencegahan ancaman siber, dan dasar pematuhan ISO 27001.',
+    level: 'Pengamal TVET',
+    description: 'Pengkhususan dalam prinsip kerahsiaan data (CIA triad), pengauditan keselamatan rangkaian, pencegahan ancaman siber, dan dasar pematuhan ISO 27001.',
     tags: ['Cybersecurity', 'CIA Triad', 'Audit Keselamatan', 'InfoSec'],
-    badge: 'DH12 Pakar Siber',
+    badge: 'Pegawai DH12 PTSS',
     organization: 'JTMK PTSS',
   },
   {
     id: 'exp-2',
     title: 'Rangkaian Komputer Cisco & Komunikasi Data',
     category: 'Teknologi Rangkaian',
-    level: 'Pakar Utama',
+    level: 'Pengamal TVET',
     description: 'Konfigurasi penghalaan (routing), pensuisan (switching), protokol TCP/IP, VLAN, subnetting IPv4/IPv6, dan infrastruktur rangkaian kampus berskala tinggi.',
     tags: ['Cisco CCNA', 'Routing & Switching', 'TCP/IP', 'Network Infra'],
     badge: 'Cisco Certified',
@@ -168,7 +168,7 @@ const SEEDED_EXPERTISE: ExpertiseItem[] = [
     id: 'exp-3',
     title: 'Pembangunan Inovasi Digital TVET (SISPEN3K & iPMAS)',
     category: 'Inovasi Digital',
-    level: 'Pakar Kanan',
+    level: 'Pembangun Sistem',
     description: 'Merangka arkitektur dan sistem perisian berimpak tinggi untuk pengurusan kokurikulum kelana (SISPEN3K), pengurusan kertas kerja pintar (iPMAS), dan automasi sijil (iCERT).',
     tags: ['SISPEN3K', 'iPMAS', 'iCERT', 'Sistem Web TVET'],
     badge: 'Inovasi Emas PTSS',
@@ -178,7 +178,7 @@ const SEEDED_EXPERTISE: ExpertiseItem[] = [
     id: 'exp-4',
     title: 'Kecerdasan Buatan Generatif (GenAI) & ChatGPT Education',
     category: 'Kecerdasan Buatan',
-    level: 'Pakar',
+    level: 'Penulis & Trainer',
     description: 'Penulis buku "ChatGPT Heroes" dan penyelidik aplikasi AI dalam metodologi pengajaran TVET, etika penggunaan model bahasa besar, dan automasi analitik.',
     tags: ['Generative AI', 'ChatGPT Heroes', 'Prompt Engineering', 'AI TVET'],
     badge: 'Penulis & Trainer AI',
@@ -188,7 +188,7 @@ const SEEDED_EXPERTISE: ExpertiseItem[] = [
     id: 'exp-5',
     title: 'Pembangunan Sistem Web, Cloud & Google Workspace',
     category: 'Pengkomputeran Awan',
-    level: 'Lanjutan',
+    level: 'Pembangun Web',
     description: 'Penyepaduan Google Workspace REST API, pengautomatan dokumen menggunakan Apps Script, pangkalan data masa nyata, dan pembangunan platform moden.',
     tags: ['Google Workspace', 'Cloud REST API', 'Apps Script', 'Full-Stack'],
     badge: 'Google Workspace Pro',
@@ -198,11 +198,31 @@ const SEEDED_EXPERTISE: ExpertiseItem[] = [
     id: 'exp-6',
     title: 'Latihan Profesional CIDB & Pembangunan Bakat NCER',
     category: 'Konsultansi & Latihan',
-    level: 'Pakar Kanan',
+    level: 'Jurulatih Bertauliah',
     description: 'Jurulatih bertauliah program keusahawanan dan teknikal peringkat kebangsaan, merangka modul latihan industri dan pembangunan kapasiti komuniti.',
     tags: ['CIDB Trainer', 'NCER Empower', 'TVET Lifelong Learning'],
     badge: 'CIDB Certified Trainer',
     organization: 'CIDB Malaysia / NCER',
+  },
+  {
+    id: 'exp-7',
+    title: 'Tenaga Pengajar - Pusat Khidmat Kontraktor CIDB & ViralPreneur',
+    category: 'Tenaga Pengajar',
+    level: 'Tenaga Pengajar',
+    description: 'Pusat Khidmat Kontraktor (PKK) bagi tajuk "Google sebagai Platform Perniagaan" di bawah CIDB, serta Penceramah Bengkel "ViralPreneur AI Creative Content Marketing".',
+    tags: ['Tenaga Pengajar', 'PKK CIDB', 'Google Platform Perniagaan', 'ViralPreneur', 'Content Marketing'],
+    badge: 'Tenaga Pengajar PKK CIDB',
+    organization: 'Pusat Khidmat Kontraktor (CIDB) & NCER',
+  },
+  {
+    id: 'exp-8',
+    title: 'Pereka Grafik - Modul Pemasaran MOTAC & Pelan Sukan KBS',
+    category: 'Pereka Grafik',
+    level: 'Pereka Grafik',
+    description: 'Pereka grafik bagi Modul Latihan Pemasaran Digital di bawah MOTAC, serta Buku Pelan Sukan Industri Negara di bawah KBS.',
+    tags: ['Pereka Grafik', 'MOTAC', 'Pemasaran Digital', 'KBS', 'Pelan Sukan Industri Negara'],
+    badge: 'Pereka Grafik Penerbitan',
+    organization: 'MOTAC & KBS Malaysia',
   },
 ];
 
@@ -378,12 +398,57 @@ export function updateAdminProfile(updates: Partial<typeof INITIAL_PERSONAL_INFO
 // ==========================================
 export function getAdminExpertise(): ExpertiseItem[] {
   try {
+    let items: ExpertiseItem[] = [];
     const raw = localStorage.getItem(STORAGE_KEY_EXPERTISE);
     if (!raw) {
+      items = SEEDED_EXPERTISE;
       localStorage.setItem(STORAGE_KEY_EXPERTISE, JSON.stringify(SEEDED_EXPERTISE));
-      return SEEDED_EXPERTISE;
+      return items;
+    } else {
+      items = JSON.parse(raw);
     }
-    return JSON.parse(raw);
+
+    // Auto-clean any legacy overclaims ("Pakar Utama", "Pakar Kanan", "Pakar")
+    let hasChanged = false;
+    items = items.map(item => {
+      let updated = { ...item };
+      if (updated.level && updated.level.toLowerCase().includes('pakar')) {
+        updated.level = updated.category || 'Bidang TVET';
+        hasChanged = true;
+      }
+      if (updated.badge && updated.badge.toLowerCase().includes('pakar siber')) {
+        updated.badge = 'Pegawai DH12 PTSS';
+        hasChanged = true;
+      }
+      if (updated.description && updated.description.startsWith('Pakar dalam')) {
+        updated.description = updated.description.replace('Pakar dalam', 'Pengkhususan dalam');
+        hasChanged = true;
+      }
+      return updated;
+    });
+
+    // Ensure exp-7 (Tenaga Pengajar) exists
+    if (!items.some(i => i.id === 'exp-7' || i.title.includes('Tenaga Pengajar'))) {
+      const item7 = SEEDED_EXPERTISE.find(i => i.id === 'exp-7');
+      if (item7) {
+        items.push(item7);
+        hasChanged = true;
+      }
+    }
+
+    // Ensure exp-8 (Pereka Grafik) exists
+    if (!items.some(i => i.id === 'exp-8' || i.title.includes('Pereka Grafik'))) {
+      const item8 = SEEDED_EXPERTISE.find(i => i.id === 'exp-8');
+      if (item8) {
+        items.push(item8);
+        hasChanged = true;
+      }
+    }
+
+    if (hasChanged) {
+      localStorage.setItem(STORAGE_KEY_EXPERTISE, JSON.stringify(items));
+    }
+    return items;
   } catch (e) {
     return SEEDED_EXPERTISE;
   }

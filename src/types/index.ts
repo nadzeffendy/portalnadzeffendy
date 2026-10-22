@@ -146,7 +146,7 @@ export interface ExpertiseItem {
   id: string;
   title: string;
   category: string;
-  level: 'Pakar Utama' | 'Pakar Kanan' | 'Pakar' | 'Lanjutan' | 'Pengamal';
+  level?: string;
   description: string;
   tags: string[];
   badge?: string;

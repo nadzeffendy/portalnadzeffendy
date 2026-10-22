@@ -29,7 +29,7 @@ export const PERSONAL_INFO = {
   photoUrl: '',
   firstAppointmentDate: '15 Ogos 2005',
   confirmationDate: '29 Mei 2009',
-  bio: 'Pendidik berwawasan dan pakar teknologi maklumat dengan lebih 20 tahun pengalaman dalam sektor Pendidikan Pengajian Tinggi TVET Malaysia. Pakar dalam bidang Keselamatan Siber, Kecerdasan Buatan (AI), Komunikasi Data Rangkaian, serta Inovasi Pengurusan Digital & Google Workspace. Aktif sebagai penceramah keusahawanan digital, penyelidik peringkat antarabangsa, dan pemimpin kokurikulum kepengakapan negara.',
+  bio: 'Pendidik berwawasan dalam bidang teknologi maklumat dengan lebih 20 tahun pengalaman dalam sektor Pendidikan Pengajian Tinggi TVET Malaysia. Berpengalaman luas dalam Keselamatan Siber, Kecerdasan Buatan (AI), Komunikasi Data Rangkaian, serta Inovasi Pengurusan Digital & Google Workspace. Aktif sebagai tenaga pengajar keusahawanan digital, pereka grafik penerbitan modul/buku, penyelidik, dan pemimpin kokurikulum kepengakapan negara.',
 };
 
 export const EDUCATIONS: Education[] = [
@@ -461,15 +461,27 @@ export const AWARDS: AwardItem[] = [
 export const EXPERTISE_SERVICES: ExpertiseService[] = [
   {
     id: 'exp-1',
-    title: 'Penceramah Pakar Pusat Khidmat Kontraktor Malaysia (CIDB)',
-    organization: 'Pusat Khidmat Kontraktor Malaysia dibawah Program CIDB Malaysia',
-    category: 'Industri & Pembinaan',
+    title: 'Tenaga Pengajar Pusat Khidmat Kontraktor (PKK) - Google sebagai Platform Perniagaan',
+    organization: 'Pusat Khidmat Kontraktor (PKK) di bawah CIDB Malaysia',
+    category: 'Tenaga Pengajar',
   },
   {
     id: 'exp-2',
-    title: 'Penceramah Jemputan ViralPreneur: AI Mastery Creative Content Keusahawanan Zon Utara',
+    title: 'Penceramah Bengkel ViralPreneur AI Creative Content Marketing',
     organization: 'Program Inisiatif Usahawan Digital Wilayah Ekonomi Koridor Utara (NCER)',
-    category: 'Kecerdasan Buatan & Pemasaran Digital',
+    category: 'Tenaga Pengajar',
+  },
+  {
+    id: 'exp-motac',
+    title: 'Pereka Grafik - Modul Latihan Pemasaran Digital',
+    organization: 'Kementerian Pelancongan, Seni dan Budaya (MOTAC)',
+    category: 'Pereka Grafik',
+  },
+  {
+    id: 'exp-kbs',
+    title: 'Pereka Grafik - Buku Pelan Sukan Industri Negara',
+    organization: 'Kementerian Belia dan Sukan (KBS)',
+    category: 'Pereka Grafik',
   },
   {
     id: 'exp-3',

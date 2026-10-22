@@ -10,6 +10,8 @@ import {
   Education,
   ServiceRecord,
   AwardItem,
+  GalleryAlbum,
+  GalleryPhoto,
 } from '../types';
 import {
   PUBLICATIONS as INITIAL_PUBLICATIONS,
@@ -30,6 +32,7 @@ const STORAGE_KEY_PROFILE = 'nadzeffendy_admin_profile_v2';
 const STORAGE_KEY_EXPERTISE = 'nadzeffendy_admin_expertise_v3';
 const STORAGE_KEY_RESEARCH = 'nadzeffendy_admin_research_v2';
 const STORAGE_KEY_CV = 'nadzeffendy_admin_cv_v2';
+const STORAGE_KEY_ALBUMS = 'nadzeffendy_admin_gallery_albums_v1';
 
 // Initial Navigation & Drive links
 const INITIAL_NAVLINKS: NavigationLink[] = [
@@ -852,7 +855,281 @@ export function deleteAdminNavLink(id: string): boolean {
 }
 
 // ==========================================
-// 7. BACKUP, RESTORE & RESET
+// 7. GALERI ALBUM & FOTO CRUD ("Satu aktiviti, satu album")
+// ==========================================
+const SEEDED_ALBUMS: GalleryAlbum[] = [
+  {
+    id: 'alb-1',
+    title: 'Graduat On Time (GOT) PhD',
+    subtitle: 'Galeri akademik pada tahun 2025',
+    category: 'Doktor Falsafah',
+    year: '2025',
+    photos: [
+      {
+        id: 'p1-1',
+        url: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80',
+        caption: 'Foto rasmi akademik sesi Phd Tahun 2025',
+      },
+      {
+        id: 'p1-2',
+        url: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=800&q=80',
+        caption: 'Foto rasmi akademik sesi Phd Tahun 2025',
+      },
+      {
+        id: 'p1-3',
+        url: 'https://images.unsplash.com/photo-1627556704290-2b1f5853ff78?auto=format&fit=crop&w=800&q=80',
+        caption: 'Foto rasmi akademik sesi Phd Tahun 2025',
+      },
+      {
+        id: 'p1-4',
+        url: 'https://images.unsplash.com/photo-1576267423445-b2e0074d68a4?auto=format&fit=crop&w=800&q=80',
+        caption: 'Foto rasmi akademik sesi Phd Tahun 2025',
+      },
+      {
+        id: 'p1-5',
+        url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
+        caption: 'Foto rasmi akademik sesi Phd Tahun 2025',
+      },
+      {
+        id: 'p1-6',
+        url: 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&w=800&q=80',
+        caption: 'Foto rasmi akademik sesi Phd Tahun 2025',
+      },
+      {
+        id: 'p1-7',
+        url: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80',
+        caption: 'Foto rasmi akademik sesi Phd Tahun 2025',
+      },
+      {
+        id: 'p1-8',
+        url: 'https://images.unsplash.com/photo-1525921429624-479b6a26d84d?auto=format&fit=crop&w=800&q=80',
+        caption: 'Foto rasmi akademik sesi Phd Tahun 2025',
+      },
+      {
+        id: 'p1-9',
+        url: 'https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?auto=format&fit=crop&w=800&q=80',
+        caption: 'Foto rasmi akademik sesi Phd Tahun 2025',
+      },
+      {
+        id: 'p1-10',
+        url: 'https://images.unsplash.com/photo-1571260899304-425eee4c7efc?auto=format&fit=crop&w=800&q=80',
+        caption: 'Foto rasmi akademik sesi Phd Tahun 2025',
+      },
+      {
+        id: 'p1-11',
+        url: 'https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=800&q=80',
+        caption: 'Foto rasmi akademik sesi Phd Tahun 2025',
+      },
+    ],
+  },
+  {
+    id: 'alb-2',
+    title: 'Pembentangan Abrar Global Conference',
+    subtitle: 'Pembentangan Abrar Global Conference 2026',
+    category: 'Umum',
+    year: '2026',
+    photos: [
+      {
+        id: 'p2-1',
+        url: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&w=800&q=80',
+        caption: 'Pembentangan hasil kajian dan penulisan bersama rakan kolaborasi dari Universiti Utara Malaysia',
+      },
+      {
+        id: 'p2-2',
+        url: 'https://images.unsplash.com/photo-1544531585-9847b68c8c86?auto=format&fit=crop&w=800&q=80',
+        caption: 'Pembentangan hasil kajian dan penulisan bersama rakan kolaborasi dari Universiti Utara Malaysia',
+      },
+      {
+        id: 'p2-3',
+        url: 'https://images.unsplash.com/photo-1558403194-611308249627?auto=format&fit=crop&w=800&q=80',
+        caption: 'Pembentangan hasil kajian dan penulisan bersama rakan kolaborasi dari Universiti Utara Malaysia',
+      },
+      {
+        id: 'p2-4',
+        url: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=800&q=80',
+        caption: 'Pembentangan hasil kajian dan penulisan bersama rakan kolaborasi dari Universiti Utara Malaysia',
+      },
+      {
+        id: 'p2-5',
+        url: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80',
+        caption: 'Pembentangan hasil kajian dan penulisan bersama rakan kolaborasi dari Universiti Utara Malaysia',
+      },
+      {
+        id: 'p2-6',
+        url: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=800&q=80',
+        caption: 'Pembentangan hasil kajian dan penulisan bersama rakan kolaborasi dari Universiti Utara Malaysia',
+      },
+      {
+        id: 'p2-7',
+        url: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=800&q=80',
+        caption: 'Pembentangan hasil kajian dan penulisan bersama rakan kolaborasi dari Universiti Utara Malaysia',
+      },
+      {
+        id: 'p2-8',
+        url: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=800&q=80',
+        caption: 'Pembentangan hasil kajian dan penulisan bersama rakan kolaborasi dari Universiti Utara Malaysia',
+      },
+      {
+        id: 'p2-9',
+        url: 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=800&q=80',
+        caption: 'Pembentangan hasil kajian dan penulisan bersama rakan kolaborasi dari Universiti Utara Malaysia',
+      },
+      {
+        id: 'p2-10',
+        url: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80',
+        caption: 'Pembentangan hasil kajian dan penulisan bersama rakan kolaborasi dari Universiti Utara Malaysia',
+      },
+      {
+        id: 'p2-11',
+        url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
+        caption: 'Pembentangan hasil kajian dan penulisan bersama rakan kolaborasi dari Universiti Utara Malaysia',
+      },
+      {
+        id: 'p2-12',
+        url: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=800&q=80',
+        caption: 'Pembentangan hasil kajian dan penulisan bersama rakan kolaborasi dari Universiti Utara Malaysia',
+      },
+    ],
+  },
+  {
+    id: 'alb-3',
+    title: 'Pameran Inovasi TVET SISPEN3K & iPMAS',
+    subtitle: 'Pertandingan Inovasi TVET & Anugerah Emas KSM PTSS',
+    category: 'Inovasi Digital',
+    year: '2024 - 2026',
+    photos: [
+      {
+        id: 'p3-1',
+        url: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=800&q=80',
+        caption: 'Demonstrasi sistem digital pintar pengurusan inovasi dan kelanasiswa',
+      },
+      {
+        id: 'p3-2',
+        url: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=800&q=80',
+        caption: 'Demonstrasi sistem digital pintar pengurusan inovasi dan kelanasiswa',
+      },
+      {
+        id: 'p3-3',
+        url: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80',
+        caption: 'Demonstrasi sistem digital pintar pengurusan inovasi dan kelanasiswa',
+      },
+      {
+        id: 'p3-4',
+        url: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=800&q=80',
+        caption: 'Demonstrasi sistem digital pintar pengurusan inovasi dan kelanasiswa',
+      },
+      {
+        id: 'p3-5',
+        url: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80',
+        caption: 'Demonstrasi sistem digital pintar pengurusan inovasi dan kelanasiswa',
+      },
+      {
+        id: 'p3-6',
+        url: 'https://images.unsplash.com/photo-1507537297725-24a1c029d3ca?auto=format&fit=crop&w=800&q=80',
+        caption: 'Demonstrasi sistem digital pintar pengurusan inovasi dan kelanasiswa',
+      },
+      {
+        id: 'p3-7',
+        url: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80',
+        caption: 'Demonstrasi sistem digital pintar pengurusan inovasi dan kelanasiswa',
+      },
+      {
+        id: 'p3-8',
+        url: 'https://images.unsplash.com/photo-1531545514256-b1400bc00f31?auto=format&fit=crop&w=800&q=80',
+        caption: 'Demonstrasi sistem digital pintar pengurusan inovasi dan kelanasiswa',
+      },
+    ],
+  },
+];
+
+export function getAdminAlbums(): GalleryAlbum[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_ALBUMS);
+    if (!raw) {
+      localStorage.setItem(STORAGE_KEY_ALBUMS, JSON.stringify(SEEDED_ALBUMS));
+      return SEEDED_ALBUMS;
+    }
+    return JSON.parse(raw);
+  } catch (e) {
+    return SEEDED_ALBUMS;
+  }
+}
+
+export function addAdminAlbum(item: Omit<GalleryAlbum, 'id' | 'photos'> & { photos?: GalleryPhoto[] }): GalleryAlbum {
+  const current = getAdminAlbums();
+  const newAlbum: GalleryAlbum = {
+    ...item,
+    id: `alb-${Date.now()}`,
+    photos: item.photos || [],
+  };
+  const updated = [newAlbum, ...current];
+  localStorage.setItem(STORAGE_KEY_ALBUMS, JSON.stringify(updated));
+  notifyAll();
+  return newAlbum;
+}
+
+export function updateAdminAlbum(id: string, updates: Partial<GalleryAlbum>): boolean {
+  const current = getAdminAlbums();
+  const idx = current.findIndex(a => a.id === id);
+  if (idx === -1) return false;
+  current[idx] = { ...current[idx], ...updates };
+  localStorage.setItem(STORAGE_KEY_ALBUMS, JSON.stringify(current));
+  notifyAll();
+  return true;
+}
+
+export function deleteAdminAlbum(id: string): boolean {
+  const current = getAdminAlbums();
+  const filtered = current.filter(a => a.id !== id);
+  localStorage.setItem(STORAGE_KEY_ALBUMS, JSON.stringify(filtered));
+  notifyAll();
+  return true;
+}
+
+export function addPhotosToAlbum(albumId: string, newPhotos: Omit<GalleryPhoto, 'id'>[]): boolean {
+  const current = getAdminAlbums();
+  const album = current.find(a => a.id === albumId);
+  if (!album) return false;
+
+  const photosToAdd: GalleryPhoto[] = newPhotos.map((p, idx) => ({
+    ...p,
+    id: `ph-${Date.now()}-${idx}`,
+    dateAdded: new Date().toISOString().split('T')[0],
+  }));
+
+  album.photos = [...(album.photos || []), ...photosToAdd];
+  localStorage.setItem(STORAGE_KEY_ALBUMS, JSON.stringify(current));
+  notifyAll();
+  return true;
+}
+
+export function deletePhotoFromAlbum(albumId: string, photoId: string): boolean {
+  const current = getAdminAlbums();
+  const album = current.find(a => a.id === albumId);
+  if (!album) return false;
+
+  album.photos = (album.photos || []).filter(p => p.id !== photoId);
+  localStorage.setItem(STORAGE_KEY_ALBUMS, JSON.stringify(current));
+  notifyAll();
+  return true;
+}
+
+export function updatePhotoCaption(albumId: string, photoId: string, caption: string): boolean {
+  const current = getAdminAlbums();
+  const album = current.find(a => a.id === albumId);
+  if (!album) return false;
+
+  const photo = (album.photos || []).find(p => p.id === photoId);
+  if (!photo) return false;
+
+  photo.caption = caption;
+  localStorage.setItem(STORAGE_KEY_ALBUMS, JSON.stringify(current));
+  notifyAll();
+  return true;
+}
+
+// ==========================================
+// 8. BACKUP, RESTORE & RESET
 // ==========================================
 export function exportAllAdminDataJSON(): string {
   const data = {
@@ -865,6 +1142,7 @@ export function exportAllAdminDataJSON(): string {
     publications: getAdminPublications(),
     courses: getAdminCourses(),
     navLinks: getAdminNavLinks(),
+    albums: getAdminAlbums(),
   };
   return JSON.stringify(data, null, 2);
 }
@@ -880,6 +1158,7 @@ export function importAllAdminDataJSON(jsonStr: string): boolean {
     if (data.publications) localStorage.setItem(STORAGE_KEY_PUBLICATIONS, JSON.stringify(data.publications));
     if (data.courses) localStorage.setItem(STORAGE_KEY_COURSES, JSON.stringify(data.courses));
     if (data.navLinks) localStorage.setItem(STORAGE_KEY_NAVLINKS, JSON.stringify(data.navLinks));
+    if (data.albums) localStorage.setItem(STORAGE_KEY_ALBUMS, JSON.stringify(data.albums));
     notifyAll();
     return true;
   } catch (e) {
@@ -897,5 +1176,6 @@ export function resetAllAdminDataToDefault(): void {
   localStorage.setItem(STORAGE_KEY_PUBLICATIONS, JSON.stringify(SEEDED_PUBLICATIONS));
   localStorage.setItem(STORAGE_KEY_COURSES, JSON.stringify(SEEDED_COURSES));
   localStorage.setItem(STORAGE_KEY_NAVLINKS, JSON.stringify(INITIAL_NAVLINKS));
+  localStorage.setItem(STORAGE_KEY_ALBUMS, JSON.stringify(SEEDED_ALBUMS));
   notifyAll();
 }

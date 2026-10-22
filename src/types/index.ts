@@ -193,3 +193,20 @@ export interface AdminCVData {
   memberships: ProfessionalMembership[];
   skills: string[];
 }
+
+// Gallery Album & Photos CRUD Types
+export interface GalleryPhoto {
+  id: string;
+  url: string; // Base64 data URL or image URL
+  caption: string;
+  dateAdded?: string;
+}
+
+export interface GalleryAlbum {
+  id: string;
+  title: string;
+  subtitle?: string;
+  category: string;
+  year?: string;
+  photos: GalleryPhoto[];
+}

@@ -156,13 +156,27 @@ export const TeachingPage: React.FC<TeachingPageProps> = ({ onNavigate }) => {
       )}
 
       {/* Kursus-Kursus Pengajian Section */}
-      <div className="pt-6 border-t border-slate-200">
-        <h3 className="text-lg font-bold text-slate-900 mb-1">
-          Senarai Kursus Pengajian JTMK & TVET ({courses.length})
-        </h3>
-        <p className="text-xs text-slate-500 mb-5">
-          Modul-modul pengajaran yang dikendalikan di peringkat Diploma dan Asasi Politeknik.
-        </p>
+      <div className="pt-6 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-bold text-slate-900 mb-1">
+            Senarai Kursus Pengajian JTMK & TVET ({courses.length})
+          </h3>
+          <p className="text-xs text-slate-500">
+            Modul-modul pengajaran yang dikendalikan di peringkat Diploma dan Asasi Politeknik.
+          </p>
+        </div>
+
+        {isAdminLoggedIn() && (
+          <button
+            type="button"
+            onClick={() => onNavigate('admin')}
+            className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto hover:scale-102"
+            title="Urus, Tambah & Kemaskini Kursus di Panel Pentadbir"
+          >
+            <ShieldCheck className="w-4 h-4 text-white" />
+            <span>CRUD Kursus TVET</span>
+          </button>
+        )}
       </div>
 
       {/* Search Input matching Image 2 */}

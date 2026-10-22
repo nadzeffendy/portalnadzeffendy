@@ -57,6 +57,10 @@ import {
   addAdminExpertise,
   updateAdminExpertise,
   deleteAdminExpertise,
+  getAdminCourses,
+  addAdminCourse,
+  updateAdminCourse,
+  deleteAdminCourse,
   getAdminResearch,
   addAdminResearch,
   updateAdminResearch,
@@ -97,7 +101,7 @@ import {
 import { AdminLoginCard } from '../components/AdminLoginCard';
 import { ConfirmModal } from '../components/ConfirmModal';
 
-type AdminTab = 'profile' | 'kepakaran' | 'penyelidikan' | 'innovations' | 'cv' | 'navlinks';
+type AdminTab = 'profile' | 'kepakaran' | 'courses' | 'penyelidikan' | 'innovations' | 'cv' | 'navlinks';
 
 export const DatabaseHubPage: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(isAdminLoggedIn());
@@ -108,6 +112,7 @@ export const DatabaseHubPage: React.FC = () => {
   // Core Data States
   const [profile, setProfile] = useState(getAdminProfile());
   const [expertiseList, setExpertiseList] = useState<ExpertiseItem[]>([]);
+  const [coursesList, setCoursesList] = useState<TeachingCourse[]>([]);
   const [researchList, setResearchList] = useState<ResearchItem[]>([]);
   const [innovations, setInnovations] = useState<InnovationProject[]>([]);
   const [cvData, setCvData] = useState<AdminCVData>(getAdminCVData());
@@ -153,6 +158,19 @@ export const DatabaseHubPage: React.FC = () => {
   const [expTags, setExpTags] = useState('');
   const [expBadge, setExpBadge] = useState('');
   const [expOrg, setExpOrg] = useState('');
+
+  // Course Add/Edit Modal
+  const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
+  const [courseModalMode, setCourseModalMode] = useState<'add' | 'edit'>('add');
+  const [activeCourseId, setActiveCourseId] = useState<string | null>(null);
+  const [crsCode, setCrsCode] = useState('');
+  const [crsName, setCrsName] = useState('');
+  const [crsLevel, setCrsLevel] = useState('Diploma Teknologi Maklumat');
+  const [crsDesc, setCrsDesc] = useState('');
+  const [crsTags, setCrsTags] = useState('');
+  const [crsMaterialsCount, setCrsMaterialsCount] = useState(12);
+  const [crsWebsiteUrl, setCrsWebsiteUrl] = useState('https://cidos.ptss.edu.my');
+  const [crsDriveUrl, setCrsDriveUrl] = useState('');
 
   // Research Add/Edit Modal
   const [isResearchModalOpen, setIsResearchModalOpen] = useState(false);
@@ -235,6 +253,7 @@ export const DatabaseHubPage: React.FC = () => {
     setProfilePhotoUrl(p.photoUrl || '');
 
     setExpertiseList(getAdminExpertise());
+    setCoursesList(getAdminCourses());
     setResearchList(getAdminResearch());
     setInnovations(getAdminInnovations());
 
@@ -431,6 +450,74 @@ export const DatabaseHubPage: React.FC = () => {
     setExpBadge('');
     setExpOrg('PTSS / JTMK');
     setIsExpertiseModalOpen(true);
+  };
+
+  // Course Form Submit & Handlers
+  const handleOpenAddCourse = () => {
+    setCourseModalMode('add');
+    setActiveCourseId(null);
+    setCrsCode('');
+    setCrsName('');
+    setCrsLevel('Diploma Teknologi Maklumat');
+    setCrsDesc('');
+    setCrsTags('');
+    setCrsMaterialsCount(12);
+    setCrsWebsiteUrl('https://cidos.ptss.edu.my');
+    setCrsDriveUrl('');
+    setIsCourseModalOpen(true);
+  };
+
+  const handleOpenEditCourse = (item: TeachingCourse) => {
+    setCourseModalMode('edit');
+    setActiveCourseId(item.id);
+    setCrsCode(item.code);
+    setCrsName(item.name);
+    setCrsLevel(item.level);
+    setCrsDesc(item.description);
+    setCrsTags((item.tags || []).join(', '));
+    setCrsMaterialsCount(item.materialsCount || 12);
+    setCrsWebsiteUrl(item.websiteUrl || 'https://cidos.ptss.edu.my');
+    setCrsDriveUrl(item.driveUrl || '');
+    setIsCourseModalOpen(true);
+  };
+
+  const handleSaveCourse = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!crsCode.trim() || !crsName.trim()) {
+      alert('Sila masukkan kod dan nama kursus pengajian.');
+      return;
+    }
+    const tagsArray = crsTags
+      .split(',')
+      .map(t => t.trim())
+      .filter(Boolean);
+
+    if (courseModalMode === 'add') {
+      addAdminCourse({
+        code: crsCode.trim().toUpperCase(),
+        name: crsName.trim(),
+        level: crsLevel.trim(),
+        description: crsDesc.trim(),
+        tags: tagsArray,
+        materialsCount: Number(crsMaterialsCount) || 12,
+        websiteUrl: crsWebsiteUrl.trim() || 'https://cidos.ptss.edu.my',
+        driveUrl: crsDriveUrl.trim(),
+      });
+      notify('Kursus pengajian TVET berjaya ditambah!');
+    } else if (activeCourseId) {
+      updateAdminCourse(activeCourseId, {
+        code: crsCode.trim().toUpperCase(),
+        name: crsName.trim(),
+        level: crsLevel.trim(),
+        description: crsDesc.trim(),
+        tags: tagsArray,
+        materialsCount: Number(crsMaterialsCount) || 12,
+        websiteUrl: crsWebsiteUrl.trim() || 'https://cidos.ptss.edu.my',
+        driveUrl: crsDriveUrl.trim(),
+      });
+      notify('Kursus pengajian TVET berjaya dikemaskini!');
+    }
+    setIsCourseModalOpen(false);
   };
 
   // Research Form Submit
@@ -723,6 +810,9 @@ export const DatabaseHubPage: React.FC = () => {
     if (type === 'expertise') {
       deleteAdminExpertise(id);
       notify('Bidang kepakaran berjaya dipadam.');
+    } else if (type === 'course') {
+      deleteAdminCourse(id);
+      notify('Kursus pengajian TVET berjaya dipadam.');
     } else if (type === 'research') {
       deleteAdminResearch(id);
       notify('Penyelidikan berjaya dipadam.');
@@ -798,6 +888,15 @@ export const DatabaseHubPage: React.FC = () => {
       e.category.toLowerCase().includes(search.toLowerCase()) ||
       e.description.toLowerCase().includes(search.toLowerCase()) ||
       e.tags?.some(t => t.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const filteredCourses = coursesList.filter(
+    c =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.code.toLowerCase().includes(search.toLowerCase()) ||
+      c.level.toLowerCase().includes(search.toLowerCase()) ||
+      c.description.toLowerCase().includes(search.toLowerCase()) ||
+      c.tags?.some(t => t.toLowerCase().includes(search.toLowerCase()))
   );
 
   const filteredResearch = researchList.filter(
@@ -920,7 +1019,24 @@ export const DatabaseHubPage: React.FC = () => {
           <span>2. Kepakaran ({expertiseList.length})</span>
         </button>
 
-        {/* TAB 3: PENYELIDIKAN */}
+        {/* TAB 3: KURSUS PENGAJIAN JTMK & TVET */}
+        <button
+          type="button"
+          onClick={() => {
+            setCurrentTab('courses');
+            setSearch('');
+          }}
+          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
+            currentTab === 'courses'
+              ? 'bg-[#0c1f38] text-white shadow-md'
+              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+          }`}
+        >
+          <GraduationCap className="w-4 h-4 text-indigo-400" />
+          <span>3. Kursus TVET ({coursesList.length})</span>
+        </button>
+
+        {/* TAB 4: PENYELIDIKAN */}
         <button
           type="button"
           onClick={() => {
@@ -934,10 +1050,10 @@ export const DatabaseHubPage: React.FC = () => {
           }`}
         >
           <BookOpen className="w-4 h-4 text-blue-400" />
-          <span>3. Penyelidikan ({researchList.length})</span>
+          <span>4. Penyelidikan ({researchList.length})</span>
         </button>
 
-        {/* TAB 4: INOVASI */}
+        {/* TAB 5: INOVASI */}
         <button
           type="button"
           onClick={() => {
@@ -951,10 +1067,10 @@ export const DatabaseHubPage: React.FC = () => {
           }`}
         >
           <Lightbulb className="w-4 h-4 text-amber-400" />
-          <span>4. Inovasi SISPEN3K ({innovations.length})</span>
+          <span>5. Inovasi SISPEN3K ({innovations.length})</span>
         </button>
 
-        {/* TAB 5: CV DENGAN GAMBAR / IMEJ */}
+        {/* TAB 6: CV DENGAN GAMBAR / IMEJ */}
         <button
           type="button"
           onClick={() => {
@@ -968,7 +1084,7 @@ export const DatabaseHubPage: React.FC = () => {
           }`}
         >
           <ImageIcon className="w-4 h-4 text-pink-400" />
-          <span>5. CV & Galeri Imej/Foto</span>
+          <span>6. CV & Galeri Imej/Foto</span>
         </button>
 
         {/* UTILITY TAB: PAUTAN NAVIGASI */}
@@ -1282,7 +1398,119 @@ export const DatabaseHubPage: React.FC = () => {
       )}
 
       {/* =========================================================================
-          TAB 3: PENYELIDIKAN CRUD
+          TAB 3: KURSUS PENGAJIAN JTMK & TVET CRUD
+          ========================================================================= */}
+      {currentTab === 'courses' && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">
+                Pengurusan Kursus Pengajian JTMK & TVET ({coursesList.length})
+              </h3>
+              <p className="text-xs text-slate-500">
+                Admin boleh menambah kursus baru, menyunting kod kursus, nama, peringkat pengajian, sinopsis/huraian, bilangan bahan, dan pautan web/CIDOS.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleOpenAddCourse}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto hover:scale-102"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Tambah Kursus Baru</span>
+            </button>
+          </div>
+
+          <div className="relative max-w-md">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Cari kursus (cth: DFC40233, Network, Cybersecurity, Multimedia)..."
+              className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredCourses.map(course => (
+              <div
+                key={course.id}
+                className="p-5 rounded-2xl bg-white border border-slate-200 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2.5">
+                    <span className="px-2.5 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-mono font-bold border border-indigo-100">
+                      {course.code}
+                    </span>
+                    <span className="text-xs font-semibold text-slate-400">
+                      {course.materialsCount || 12} Bahan Muat Turun
+                    </span>
+                  </div>
+
+                  <h4 className="text-base font-bold text-slate-900 leading-snug">{course.name}</h4>
+                  <p className="text-xs font-semibold text-indigo-600 mt-1">{course.level}</p>
+                  <p className="text-xs text-slate-600 mt-2 leading-relaxed">{course.description}</p>
+
+                  {course.tags && course.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-3">
+                      {course.tags.map((t, idx) => (
+                        <span key={idx} className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
+                          #{t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {course.websiteUrl && (
+                    <div className="mt-3 text-xs text-blue-600 flex items-center gap-1">
+                      <Globe className="w-3.5 h-3.5 shrink-0" />
+                      <a
+                        href={course.websiteUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="truncate hover:underline text-[11px]"
+                      >
+                        {course.websiteUrl}
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditCourse(course)}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    <span>Sunting</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => triggerDelete(course.id, `${course.code} - ${course.name}`, 'course')}
+                    className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Padam</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {filteredCourses.length === 0 && (
+              <div className="col-span-full p-8 text-center bg-white border border-slate-200 rounded-2xl text-slate-500">
+                <p className="text-sm font-bold text-slate-700">Tiada kursus pengajian dijumpai</p>
+                <p className="text-xs text-slate-400 mt-1">Sila klik &quot;+ Tambah Kursus Baru&quot; untuk memasukkan rekod pertama.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 4: PENYELIDIKAN CRUD
           ========================================================================= */}
       {currentTab === 'penyelidikan' && (
         <div className="space-y-6">
@@ -2025,6 +2253,145 @@ export const DatabaseHubPage: React.FC = () => {
                   className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm"
                 >
                   Simpan Kepakaran
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Kursus Pengajian JTMK & TVET Add/Edit */}
+      {isCourseModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h3 className="text-base font-bold text-slate-900">
+                {courseModalMode === 'add' ? 'Tambah Kursus Pengajian Baharu' : 'Sunting Kursus Pengajian TVET'}
+              </h3>
+              <button onClick={() => setIsCourseModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCourse} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Kod Kursus</label>
+                  <input
+                    type="text"
+                    value={crsCode}
+                    onChange={e => setCrsCode(e.target.value)}
+                    className="w-full text-xs sm:text-sm p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono uppercase"
+                    placeholder="cth: DFC40233"
+                    required
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Nama Kursus</label>
+                  <input
+                    type="text"
+                    value={crsName}
+                    onChange={e => setCrsName(e.target.value)}
+                    className="w-full text-xs sm:text-sm p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                    placeholder="cth: Network and Data Communication"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Peringkat / Program</label>
+                  <input
+                    type="text"
+                    value={crsLevel}
+                    onChange={e => setCrsLevel(e.target.value)}
+                    className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                    placeholder="cth: Diploma Teknologi Maklumat"
+                    list="course-level-list"
+                    required
+                  />
+                  <datalist id="course-level-list">
+                    <option value="Diploma Teknologi Maklumat" />
+                    <option value="Diploma Teknologi Digital" />
+                    <option value="Program Asasi TVET & Politeknik" />
+                    <option value="Sijil & Diploma Politeknik" />
+                    <option value="Diploma Teknologi Maklumat & Kejuruteraan" />
+                  </datalist>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Bilangan Bahan Muat Turun</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={crsMaterialsCount}
+                    onChange={e => setCrsMaterialsCount(parseInt(e.target.value) || 0)}
+                    className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                    placeholder="12"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Huraian & Sinopsis Modul</label>
+                <textarea
+                  value={crsDesc}
+                  onChange={e => setCrsDesc(e.target.value)}
+                  rows={3}
+                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl leading-relaxed"
+                  placeholder="Kandungan silibus pembelajaran kursus..."
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Tag / Kata Kunci (koma dipisahkan)</label>
+                <input
+                  type="text"
+                  value={crsTags}
+                  onChange={e => setCrsTags(e.target.value)}
+                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                  placeholder="cth: Networking, Cisco, TCP/IP, Wireshark"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Pautan Web / Portal CIDOS LMS</label>
+                  <input
+                    type="url"
+                    value={crsWebsiteUrl}
+                    onChange={e => setCrsWebsiteUrl(e.target.value)}
+                    className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                    placeholder="https://cidos.ptss.edu.my"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Pautan Google Drive Bahan (Pilihan)</label>
+                  <input
+                    type="url"
+                    value={crsDriveUrl}
+                    onChange={e => setCrsDriveUrl(e.target.value)}
+                    className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                    placeholder="https://drive.google.com/..."
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsCourseModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm"
+                >
+                  Simpan Kursus
                 </button>
               </div>
             </form>
